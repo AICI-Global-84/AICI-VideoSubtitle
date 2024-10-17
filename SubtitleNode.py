@@ -210,7 +210,13 @@ class SubtitleNode:
 
         transcript_text = self.generate_transcript_matrix(extracted_audio_name, params_dict)
         vtt_path = self.convert_transcript_to_subtitles(transcript_text, extracted_audio_name, params_dict)
-        output_video = self.embed_subtitles(video_file, extracted_audio_name, params_dict)
+        output_video = self.embed_subtitles(
+            video_file, 
+            vtt_path,  # Đây là file phụ đề (subtitles) đã được tạo ra từ hàm convert_transcript_to_subtitles
+            params_dict["eng_font"],  # Truyền tên font từ params_dict
+            params_dict["font_size"],  # Truyền kích thước font từ params_dict
+            params_dict["font_color"]  # Truyền màu font từ params_dict
+        )
 
         # Upload video to Google Drive and get the URL
         output_video_url = self.google_drive_uploader.upload_to_drive(output_video)
