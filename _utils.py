@@ -18,7 +18,7 @@ class Timestamped_word:
             "word": self.word
         }
 
-with open('config.json') as f:
+with open('.config.json') as f:
     config = json.load(f)
 
 with open('word_options.json') as f:
