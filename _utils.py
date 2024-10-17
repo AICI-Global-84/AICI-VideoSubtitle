@@ -18,8 +18,10 @@ class Timestamped_word:
             "word": self.word
         }
 
-with open('config.json') as f:
+config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+with open(config_path) as f:
     config = json.load(f)
+
 
 with open('word_options.json') as f:
     word_options_list = json.load(f)
