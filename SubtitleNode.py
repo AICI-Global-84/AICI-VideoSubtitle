@@ -4,14 +4,128 @@ import whisper
 import torch
 import time
 from moviepy.editor import VideoFileClip
-from ._utils import AUDIO_DIR, create_new_logger, generate_unique_file_name
-from ._utils import get_curr_logger, AUDIO_DIR, Timestamped_word, JSON_DIR, json_write, write_text_file
-from ._utils import (get_curr_logger, JSON_DIR, word_options_index_map, json_read, word_options_json_path, SUBTITLES_DIR,
-                    write_text_file)
-from ._utils import get_curr_logger, SUBTITLES_DIR, TMP_OUTPUT_DIR, generate_current_time_suffix, video_quality_map, \
-    json_read, FONTS_JSON_PATH, FONTS_DIR
+import json
+import logging
+from datetime import datetime
+from dataclasses import dataclass
 
+# Timestamped_word class
+@dataclass
+class Timestamped_word:
+    start_time: int  # both start_time and end_time are in ms (So, multiply by 1000 from segments)
+    end_time: int
+    word: str
 
+    def to_dict(self):
+        return {
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "word": self.word
+        }
+
+# Configurations
+base_dir = os.path.dirname(__file__)
+
+config_path = os.path.join(base_dir, 'config.json')
+with open(config_path) as f:
+    config = json.load(f)
+
+word_options_path = os.path.join(base_dir, 'word_options.json')
+with open(word_options_path) as f:
+    word_options_list = json.load(f)
+
+RESOURCES_DIR = config['RESOURCES_DIR']
+VIDEO_DIR = config['VIDEO_DIR']
+AUDIO_DIR = config['AUDIO_DIR']
+JSON_DIR = config['JSON_DIR']
+SUBTITLES_DIR = config['SUBTITLES_DIR']
+OUTPUT_DIR = config['OUTPUT_DIR']
+TMP_OUTPUT_DIR = config['TMP_OUTPUT_DIR']
+TMP_SUBTITLES_DIR = config['TMP_SUBTITLES_DIR']
+LOGS_DIR = config['LOGS_DIR']
+FONTS_DIR = config['FONTS_DIR']
+THUMBNAILS_DIR = config['THUMBNAILS_DIR']
+PARAMS_JSON_1_PATH = config['PARAMS_JSON_1_PATH']
+PARAMS_JSON_2_PATH = config['PARAMS_JSON_2_PATH']
+FONTS_JSON_PATH = config['FONTS_JSON_PATH']
+
+os.makedirs(AUDIO_DIR, exist_ok=True)
+os.makedirs(JSON_DIR, exist_ok=True)
+os.makedirs(LOGS_DIR, exist_ok=True)
+os.makedirs(SUBTITLES_DIR, exist_ok=True)
+
+word_options_index_map = {
+    "1-2 words per line": "1",
+    "3-4 words per line": "2",
+    "5-7 words per line": "3",
+    "8-10 words per line": "4",
+    "11-12 words per line": "5",
+    "13-15 words per line": "6",
+}
+
+video_quality_map = {  # maps video quality to crf value that varies from 0 to 51, lower the better quality
+    'highest': '12',
+    'high': '15',
+    'medium': '18',
+    'low': '20',
+    'lowest': '23',
+    'reduced': '30'
+}
+
+# Utility functions
+def json_read(json_path):
+    with open(json_path, 'r', encoding='utf-8') as file:
+        return json.load(file)
+
+def json_write(json_path, text):
+    with open(json_path, 'w') as file:
+        json.dump(text, file, indent=4)
+
+def read_text_file(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return file.read()
+
+def write_text_file(file_path, text):
+    with open(file_path, 'w', encoding='utf-8') as file:
+        file.write(text)
+
+def generate_log_name():
+    current_datetime = datetime.now()
+    date_string = current_datetime.strftime('%Y-%m-%d')
+    time_string = current_datetime.strftime('%H%M%S')
+    return f"{date_string}_{time_string}"
+
+def get_curr_log_file_path():
+    log_name = generate_log_name()
+    os.makedirs(LOGS_DIR, exist_ok=True)
+    log_file_path = f'{LOGS_DIR}/{log_name}.log'
+    return log_name, log_file_path
+
+def create_new_logger():
+    curr_log_file_name, curr_log_file_path = get_curr_log_file_path()
+    log_path_dict = {
+        'log_name': curr_log_file_name,
+        'log_path': curr_log_file_path
+    }
+    json_write(os.path.join(base_dir, 'logs.json'), log_path_dict)
+    logging.basicConfig(filename=curr_log_file_path, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    return logging.getLogger(curr_log_file_path)
+
+def get_curr_logger():
+    log_path_dict = json_read(os.path.join(base_dir, 'logs.json'))
+    curr_log_file_path = log_path_dict['log_path']
+    logging.basicConfig(filename=curr_log_file_path, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    return logging.getLogger(curr_log_file_path)
+
+def generate_unique_file_name(file_name):
+    now = datetime.now()
+    return f'{file_name}_{now.strftime("%Y-%m-%d_%H-%M-%S-%f")}'
+
+def generate_current_time_suffix():
+    now = datetime.now()
+    return f'{now.strftime("%H-%M-%S-%f")}'
+
+# SubtitleNode class
 class SubtitleNode:
     @classmethod
     def INPUT_TYPES(cls):
@@ -31,7 +145,6 @@ class SubtitleNode:
     FUNCTION = "process"
 
     def process(self, video_file, font_name, font_size, font_color, subtitle_position, subtitle_style, translate_to_english):
-        # Extract audio from video and generate subtitles
         extracted_audio_name = self.extract_audio(video_file)
         params_dict = {
             "translate_to_english": translate_to_english,
@@ -43,21 +156,15 @@ class SubtitleNode:
             "subtitle_style": subtitle_style
         }
 
-        # Tạo transcript từ audio
         transcript_text = self.generate_transcript_matrix(extracted_audio_name, params_dict)
-
-        # Chuyển transcript thành file subtitle (.vtt)
         vtt_path = self.convert_transcript_to_subtitles(transcript_text, extracted_audio_name, params_dict)
-
-        # Chèn subtitle vào video
         output_video = self.embed_subtitles(video_file, extracted_audio_name, params_dict)
 
-        # Trả về đường dẫn tới video đã chèn subtitle
         return (output_video,)
 
     def extract_audio(self, video_file_path):
         file_name_with_ext = os.path.basename(video_file_path)
-        file_name = self.generate_unique_file_name(file_name_with_ext.split('.')[0])
+        file_name = generate_unique_file_name(file_name_with_ext.split('.')[0])
         curr_audio_dir = f'{AUDIO_DIR}/{file_name}'
         os.makedirs(curr_audio_dir, exist_ok=True)
         audio_file_name = f'{file_name}.wav'
@@ -74,21 +181,21 @@ class SubtitleNode:
         curr_audio_dir = f'{AUDIO_DIR}/{file_name}'
         audio_file_name = f'{file_name}.wav'
         audio_file_path = f'{curr_audio_dir}/{audio_file_name}'
-    
+
         model_name = "large-v2"
         device = "cuda" if torch.cuda.is_available() else "cpu"
         model = whisper.load_model(model_name, device)
-        
+
         task = 'transcribe'
         if params_dict['translate_to_english']:
             task = 'translate'
-    
+
         result = model.transcribe(
             audio_file_path,
             task=task,
             word_timestamps=True
         )
-    
+
         segments = result['segments']
         transcript_matrix = []
         for i in range(len(segments)):
@@ -102,11 +209,10 @@ class SubtitleNode:
                 }
                 current_row.append(word_instance)
             transcript_matrix.append(current_row)
-    
+
         return transcript_matrix
 
     def convert_transcript_to_subtitles(self, transcript_matrix, file_name, params_dict):
-        # Tạo phụ đề từ transcript_matrix dưới dạng `.vtt`
         lines = ["WEBVTT\n"]
         for i in range(len(transcript_matrix)):
             for j in range(len(transcript_matrix[i])):
@@ -114,26 +220,26 @@ class SubtitleNode:
                 start_time = transcript_matrix[i][j]["start_time"]
                 end_time = transcript_matrix[i][j]["end_time"]
                 lines.append(f"{self.convert_time_for_vtt_and_srt(start_time)} --> {self.convert_time_for_vtt_and_srt(end_time)}\n{word}\n")
-    
+
         vtt_text = "\n".join(lines)
         curr_subtitles_dir = f'{SUBTITLES_DIR}/{file_name}'
         os.makedirs(curr_subtitles_dir, exist_ok=True)
         vtt_subtitle_path = f'{curr_subtitles_dir}/{file_name}.vtt'
-        
+
         with open(vtt_subtitle_path, 'w') as f:
             f.write(vtt_text)
-        
+
         return vtt_subtitle_path
 
     def embed_subtitles(self, video_file_path, file_name, params_dict):
         curr_subtitles_dir = f"{SUBTITLES_DIR}/{file_name}"
         subtitles_path = f"{curr_subtitles_dir}/{file_name}.vtt"
-        
+
         output_video_path = f"{TMP_OUTPUT_DIR}/{file_name}_output.mp4"
         font_name = params_dict["eng_font"]
         font_size = params_dict["font_size"]
         font_color = params_dict["font_color"]
-        
+
         ffmpeg_cmd = [
             'ffmpeg',
             '-i', video_file_path,
@@ -143,7 +249,7 @@ class SubtitleNode:
             '-y',  # Overwrite output
             output_video_path
         ]
-    
+
         subprocess.run(ffmpeg_cmd)
         return output_video_path
 
@@ -156,9 +262,11 @@ class SubtitleNode:
 
 # Cập nhật mappings cho node
 NODE_CLASS_MAPPINGS = {
-    "SubtitleNode": SubtitleNode
+    "SubtitleNode": SubtitleNode,
+    "Timestamped_word": Timestamped_word
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SubtitleNode": "Subtitle Node"
+    "SubtitleNode": "Subtitle Node",
+    "Timestamped_word": "Timestamped word"
 }
