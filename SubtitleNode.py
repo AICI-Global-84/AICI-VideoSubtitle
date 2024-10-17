@@ -3,11 +3,15 @@ import subprocess
 import whisper
 import torch
 import time
-from moviepy.editor import VideoFileClip
+import requests
+import tempfile
 import json
 import logging
 from datetime import datetime
-from dataclasses import dataclass
+from moviepy.editor import VideoFileClip
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 
 # Timestamped_word class
 @dataclass
@@ -125,8 +129,55 @@ def generate_current_time_suffix():
     now = datetime.now()
     return f'{now.strftime("%H-%M-%S-%f")}'
 
+# Google Drive configurations
+class GoogleDriveUploader:
+    SCOPES = ['https://www.googleapis.com/auth/drive.file']
+    SERVICE_ACCOUNT_FILE = '/content/drive/My Drive/SD-Data/comfyui-n8n-aici01-7679b55c962b.json'
+    DRIVE_FOLDER_ID = '1fZyeDT_eW6ozYXhqi_qLVy-Xnu5JD67a'
+
+    def __init__(self):
+        self.drive_service = None
+        self._initialize_drive_service()
+
+    def _initialize_drive_service(self):
+        try:
+            credentials = service_account.Credentials.from_service_account_file(
+                self.SERVICE_ACCOUNT_FILE, scopes=self.SCOPES)
+            self.drive_service = build('drive', 'v3', credentials=credentials)
+        except Exception as e:
+            print(f"Error initializing Drive service: {str(e)}")
+            raise RuntimeError(f"Failed to initialize Drive service: {str(e)}")
+
+    def upload_to_drive(self, file_path):
+        try:
+            file_metadata = {
+                'name': os.path.basename(file_path),
+                'parents': [self.DRIVE_FOLDER_ID]
+            }
+            media = MediaFileUpload(file_path, resumable=True)
+            file = self.drive_service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id'
+            ).execute()
+
+            self.drive_service.permissions().create(
+                fileId=file.get('id'),
+                body={'type': 'anyone', 'role': 'reader'},
+                fields='id'
+            ).execute()
+
+            file_id = file.get('id')
+            return f"https://drive.google.com/uc?id={file_id}"
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to upload to Drive: {str(e)}")
+
 # SubtitleNode class
 class SubtitleNode:
+    def __init__(self):
+        self.google_drive_uploader = GoogleDriveUploader()
+
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -160,9 +211,21 @@ class SubtitleNode:
         vtt_path = self.convert_transcript_to_subtitles(transcript_text, extracted_audio_name, params_dict)
         output_video = self.embed_subtitles(video_file, extracted_audio_name, params_dict)
 
-        return (output_video,)
+        # Upload video to Google Drive and get the URL
+        output_video_url = self.google_drive_uploader.upload_to_drive(output_video)
+
+        return (output_video_url,)
 
     def extract_audio(self, video_file_path):
+        if video_file_path.startswith("http://") or video_file_path.startswith("https://"):
+            response = requests.get(video_file_path)
+            if response.status_code == 200:
+                temp_video_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+                temp_video_file.write(response.content)
+                video_file_path = temp_video_file.name
+            else:
+                raise RuntimeError(f"Failed to download video from URL: {video_file_path}")
+
         file_name_with_ext = os.path.basename(video_file_path)
         file_name = generate_unique_file_name(file_name_with_ext.split('.')[0])
         curr_audio_dir = f'{AUDIO_DIR}/{file_name}'
