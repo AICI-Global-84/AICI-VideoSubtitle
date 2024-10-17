@@ -1,12 +1,10 @@
-from .SubtitleNode import SubtitleNode, Timestamped_word
+from .SubtitleNode import SubtitleNode
 NODE_CLASS_MAPPINGS = {
-    "SubtitleNode": SubtitleNode,
-    "Timestamped_word": Timestamped_word
+    "SubtitleNode": SubtitleNode
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SubtitleNode": "Subtitle Node",
-    "Timestamped_word": "Timestamped word"
+    "SubtitleNode": "Subtitle Node"
 }
 
 __all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']
