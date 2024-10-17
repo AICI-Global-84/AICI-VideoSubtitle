@@ -2,7 +2,15 @@ import os
 import subprocess
 import whisper
 import torch
+import time
 from moviepy.editor import VideoFileClip
+from _utils import AUDIO_DIR, create_new_logger, generate_unique_file_name
+from _utils import get_curr_logger, AUDIO_DIR, Timestamped_word, JSON_DIR, json_write, write_text_file
+from _utils import (get_curr_logger, JSON_DIR, word_options_index_map, json_read, word_options_json_path, SUBTITLES_DIR,
+                    write_text_file)
+from _utils import get_curr_logger, SUBTITLES_DIR, TMP_OUTPUT_DIR, generate_current_time_suffix, video_quality_map, \
+    json_read, FONTS_JSON_PATH, FONTS_DIR
+
 
 class SubtitleNode:
     @classmethod
