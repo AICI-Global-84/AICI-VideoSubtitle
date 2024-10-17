@@ -4,10 +4,9 @@ import logging
 from datetime import datetime
 from dataclasses import dataclass
 
-
 @dataclass
 class Timestamped_word:
-    start_time: int # both start_time and end_time are in ms (So, multiply by 1000 from segments)
+    start_time: int  # both start_time and end_time are in ms (So, multiply by 1000 from segments)
     end_time: int
     word: str
 
@@ -18,12 +17,15 @@ class Timestamped_word:
             "word": self.word
         }
 
-config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+# Use absolute paths for config and word_options files
+base_dir = os.path.dirname(__file__)
+
+config_path = os.path.join(base_dir, 'config.json')
 with open(config_path) as f:
     config = json.load(f)
 
-
-with open('word_options.json') as f:
+word_options_path = os.path.join(base_dir, 'word_options.json')
+with open(word_options_path) as f:
     word_options_list = json.load(f)
 
 RESOURCES_DIR = config['RESOURCES_DIR']
@@ -55,7 +57,7 @@ word_options_index_map = {
     "13-15 words per line": "6",
 }
 
-video_quality_map = { # maps video quality to crf value that varies from 0 to 51, lower the better quality
+video_quality_map = {  # maps video quality to crf value that varies from 0 to 51, lower the better quality
     'highest': '12',
     'high': '15',
     'medium': '18',
@@ -80,9 +82,8 @@ def write_text_file(file_path, text):
     with open(file_path, 'w', encoding='utf-8') as file:
         file.write(text)
 
-config = json_read('config.json')
+config = json_read(config_path)
 word_options_json_path = config['WORD_OPTIONS_JSON_PATH']
-
 
 def get_video_files_from_dir(dir):
     # List files in the directory
@@ -90,7 +91,7 @@ def get_video_files_from_dir(dir):
     video_file_names_with_ext = []
 
     for file in files:
-        if (file.lower().endswith(('.mp4', '.mkv', '.mov'))): # Currently supporting three types of video extension
+        if (file.lower().endswith(('.mp4', '.mkv', '.mov'))):  # Currently supporting three types of video extension
             video_file_names_with_ext.append(file)
 
     return video_file_names_with_ext
@@ -128,15 +129,15 @@ def create_new_logger():
         'log_name': curr_log_file_name,
         'log_path': curr_log_file_path
     }
-    json_write(f'./logs.json', log_path_dict)
+    json_write(os.path.join(base_dir, 'logs.json'), log_path_dict)
     logging.basicConfig(filename=curr_log_file_path, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     return logging.getLogger(curr_log_file_path)
 
 def get_curr_logger():
-    log_path_dict = json_read(f'./logs.json')
+    log_path_dict = json_read(os.path.join(base_dir, 'logs.json'))
     curr_log_file_path = log_path_dict['log_path']
     logging.basicConfig(filename=curr_log_file_path, level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s') # Dont delete the lines
+                        format='%(asctime)s - %(levelname)s - %(message)s')  # Dont delete the lines
     return logging.getLogger(curr_log_file_path)
 
 def generate_unique_file_name(file_name):
