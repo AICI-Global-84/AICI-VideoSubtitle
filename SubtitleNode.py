@@ -295,27 +295,43 @@ class SubtitleNode:
 
         return vtt_subtitle_path
 
-    def embed_subtitles(self, video_file_path, file_name, params_dict):
-        curr_subtitles_dir = f"{SUBTITLES_DIR}/{file_name}"
-        subtitles_path = f"{curr_subtitles_dir}/{file_name}.vtt"
+    def embed_subtitles(self, video_file_path, subtitles_file_path, font_name, font_size, font_color):
+        temp_output_path = None
 
-        output_video_path = f"{TMP_OUTPUT_DIR}/{file_name}_output.mp4"
-        font_name = params_dict["eng_font"]
-        font_size = params_dict["font_size"]
-        font_color = params_dict["font_color"]
+        try:
+            # Tạo file đầu ra tạm thời
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_output:
+                temp_output_path = temp_output.name
 
-        ffmpeg_cmd = [
-            'ffmpeg',
-            '-i', video_file_path,
-            "-vf", f"subtitles={subtitles_path}:force_style='Fontname={font_name},Fontsize={font_size},PrimaryColour=&H{font_color}&'",
-            '-c:a', 'copy',
-            '-c:v', 'libx264',
-            '-y',  # Overwrite output
-            output_video_path
-        ]
+            # Chạy lệnh FFMPEG để nhúng phụ đề vào video
+            ffmpeg_cmd = [
+                'ffmpeg', '-i', video_file_path,
+                '-vf', f"subtitles={subtitles_file_path}:force_style='Fontname={font_name},Fontsize={font_size},PrimaryColour=&H{font_color}&'",
+                '-c:a', 'copy',
+                '-c:v', 'libx264',
+                '-y',  # Ghi đè file nếu đã tồn tại
+                temp_output_path
+            ]
+            subprocess.run(ffmpeg_cmd, check=True)
 
-        subprocess.run(ffmpeg_cmd)
-        return output_video_path
+            # Kiểm tra xem file đã được tạo thành công hay chưa
+            if os.path.exists(temp_output_path):
+                # Tải file lên Google Drive
+                output_video_url = self._upload_to_drive(temp_output_path)
+                return (output_video_url,)
+            else:
+                raise FileNotFoundError(f"Output video not found at {temp_output_path}")
+
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"FFMPEG failed with error: {str(e)}")
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to embed subtitles: {str(e)}")
+
+        finally:
+            # Xóa file tạm nếu tồn tại
+            if temp_output_path and os.path.exists(temp_output_path):
+                os.unlink(temp_output_path)
 
     def convert_time_for_vtt_and_srt(self, ms):
         seconds = ms // 1000
