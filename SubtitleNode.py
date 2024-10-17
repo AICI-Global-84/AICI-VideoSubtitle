@@ -262,11 +262,9 @@ class SubtitleNode:
 
 # Cập nhật mappings cho node
 NODE_CLASS_MAPPINGS = {
-    "SubtitleNode": SubtitleNode,
-    "Timestamped_word": Timestamped_word
+    "SubtitleNode": SubtitleNode
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SubtitleNode": "Subtitle Node",
-    "Timestamped_word": "Timestamped word"
+    "SubtitleNode": "Subtitle Node"
 }
