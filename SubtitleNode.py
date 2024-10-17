@@ -8,6 +8,7 @@ import tempfile
 import json
 import logging
 from datetime import datetime
+from dataclasses import dataclass
 from moviepy.editor import VideoFileClip
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
