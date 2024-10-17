@@ -211,16 +211,15 @@ class SubtitleNode:
         transcript_text = self.generate_transcript_matrix(extracted_audio_name, params_dict)
         vtt_path = self.convert_transcript_to_subtitles(transcript_text, extracted_audio_name, params_dict)
         
-        # Nhúng phụ đề vào video và lấy đường dẫn file video đã chỉnh sửa
         output_video_path = self.embed_subtitles(
             video_file, 
-            vtt_path,  
-            params_dict["eng_font"],  
-            params_dict["font_size"],  
-            params_dict["font_color"]  
+            vtt_path,  # Đây là file phụ đề (subtitles) đã được tạo ra từ hàm convert_transcript_to_subtitles
+            params_dict["eng_font"],  # Truyền tên font từ params_dict
+            params_dict["font_size"],  # Truyền kích thước font từ params_dict
+            params_dict["font_color"]  # Truyền màu font từ params_dict
         )
     
-        # Upload video lên Google Drive và lấy URL
+        # Upload video to Google Drive and get the URL
         output_video_url = self.google_drive_uploader.upload_to_drive(output_video_path)
     
         return (output_video_url,)
@@ -305,7 +304,7 @@ class SubtitleNode:
 
     def embed_subtitles(self, video_file_path, subtitles_file_path, font_name, font_size, font_color):
         temp_output_path = None
-
+    
         try:
             # Tạo file đầu ra tạm thời
             with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_output:
@@ -324,7 +323,7 @@ class SubtitleNode:
     
             # Kiểm tra xem file đã được tạo thành công hay chưa
             if os.path.exists(temp_output_path):
-                return temp_output_path  # Trả về đường dẫn file video tạm thời
+                return temp_output_path  # Trả về đường dẫn đến file video đầu ra
             else:
                 raise FileNotFoundError(f"Output video not found at {temp_output_path}")
     
