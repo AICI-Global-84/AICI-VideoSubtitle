@@ -324,7 +324,7 @@ class SubtitleNode:
             if os.path.exists(temp_output_path):
                 # Tải file lên Google Drive
                 output_video_url = self.google_drive_uploader.upload_to_drive(temp_output_path)
-                return (output_video_url,)
+                return output_video_url
             else:
                 raise FileNotFoundError(f"Output video not found at {temp_output_path}")
 
