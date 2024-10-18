@@ -335,8 +335,13 @@ class SubtitleNode:
             with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_output:
                 temp_output_path = temp_output.name
     
+            # Xác định đường dẫn font từ thư mục FONTS_DIR
+            font_path = os.path.join(FONTS_DIR, font_name)
+            if not os.path.isfile(font_path):
+                raise FileNotFoundError(f"Font file not found: {font_path}")
+    
             # Chuẩn bị các giá trị style phụ đề cho FFMPEG
-            style_options = f"Fontname={font_name},Fontsize={font_size},PrimaryColour=&H{font_color}&"
+            style_options = f"Fontname={font_path},Fontsize={font_size},PrimaryColour=&H{font_color}&"
     
             # Thêm định dạng cho kiểu phụ đề (subtitle_style)
             if subtitle_style == "bold":
@@ -387,6 +392,7 @@ class SubtitleNode:
             # Xóa file tạm nếu tồn tại
             if temp_output_path and os.path.exists(temp_output_path):
                 os.unlink(temp_output_path)
+
      
     def convert_time_for_vtt_and_srt(self, ms):
         seconds = ms // 1000
