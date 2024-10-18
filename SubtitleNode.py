@@ -338,8 +338,9 @@ class SubtitleNode:
             # Đọc font từ file JSON
             fonts_dict = json_read(FONTS_JSON_PATH)
             font_lang = "english_fonts"  # Giả sử bạn đang sử dụng tiếng Anh cho font
-            font_file_name = fonts_dict[font_lang][font_name]  # Lấy tên file font từ dict
-            font_path = f'{FONTS_DIR}/{font_lang}/{font_file_name}'  # Đường dẫn tới file font
+            font_file_name = fonts_dict[font_lang][font_name]
+            font_path = f'/content/ComfyUI/custom_nodes/AICI-VideoSubtitle/resources/fonts/english_fonts/{font_file_name}'
+
     
             # Kiểm tra xem font file có tồn tại không
             if not os.path.exists(font_path):
