@@ -329,16 +329,21 @@ class SubtitleNode:
 
     def embed_subtitles(self, video_file_path, subtitles_file_path, font_name, font_size, font_color, subtitle_position, subtitle_style):
         temp_output_path = None
-    
+        
         try:
             # Tạo file đầu ra tạm thời
             with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_output:
                 temp_output_path = temp_output.name
     
-            # Xác định đường dẫn font từ thư mục FONTS_DIR
-            font_path = os.path.join(FONTS_DIR, font_name)
-            if not os.path.isfile(font_path):
-                raise FileNotFoundError(f"Font file not found: {font_path}")
+            # Đọc font từ file JSON
+            fonts_dict = json_read(FONTS_JSON_PATH)
+            font_lang = "english_fonts"  # Giả sử bạn đang sử dụng tiếng Anh cho font
+            font_file_name = fonts_dict[font_lang][font_name]  # Lấy tên file font từ dict
+            font_path = f'{FONTS_DIR}/{font_lang}/{font_file_name}'  # Đường dẫn tới file font
+    
+            # Kiểm tra xem font file có tồn tại không
+            if not os.path.exists(font_path):
+                raise RuntimeError(f"Font file not found: {font_path}")
     
             # Chuẩn bị các giá trị style phụ đề cho FFMPEG
             style_options = f"Fontname={font_path},Fontsize={font_size},PrimaryColour=&H{font_color}&"
