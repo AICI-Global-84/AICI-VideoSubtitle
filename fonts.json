@@ -1,6 +1,6 @@
 {
     "english_fonts": {
-        "Pricedown": "pricedown/pricedown black.otf",
+        "Pricedown": "/content/ComfyUI/custom_nodes/AICI-VideoSubtitle/resources/fonts/english_fonts/pricedown/pricedown black.otf",
         "Komika Axis": "komika-axis/KOMIKAX_.ttf",
         "Bungee": "Bungee-Font-Family/Bungee-Regular.ttf",
         "Kalam": "Kalam/Kalam-Bold.ttf",
