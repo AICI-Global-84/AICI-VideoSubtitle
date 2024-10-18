@@ -207,21 +207,20 @@ class SubtitleNode:
             "subtitle_position": subtitle_position,
             "subtitle_style": subtitle_style
         }
-    
+
         transcript_text = self.generate_transcript_matrix(extracted_audio_name, params_dict)
         vtt_path = self.convert_transcript_to_subtitles(transcript_text, extracted_audio_name, params_dict)
-        
-        output_video_path = self.embed_subtitles(
+        output_video = self.embed_subtitles(
             video_file, 
             vtt_path,  # Đây là file phụ đề (subtitles) đã được tạo ra từ hàm convert_transcript_to_subtitles
             params_dict["eng_font"],  # Truyền tên font từ params_dict
             params_dict["font_size"],  # Truyền kích thước font từ params_dict
             params_dict["font_color"]  # Truyền màu font từ params_dict
         )
-    
+
         # Upload video to Google Drive and get the URL
-        output_video_url = self.google_drive_uploader.upload_to_drive(output_video_path)
-    
+        output_video_url = self.google_drive_uploader.upload_to_drive(output_video)
+
         return (output_video_url,)
 
     def extract_audio(self, video_file_path):
@@ -304,13 +303,13 @@ class SubtitleNode:
 
     def embed_subtitles(self, video_file_path, subtitles_file_path, font_name, font_size, font_color):
         temp_output_path = None
-    
+
         try:
             # Tạo file đầu ra tạm thời
             with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_output:
                 temp_output_path = temp_output.name
-    
-            # Lệnh FFMPEG để nhúng phụ đề vào video
+
+            # Chạy lệnh FFMPEG để nhúng phụ đề vào video
             ffmpeg_cmd = [
                 'ffmpeg', '-i', video_file_path,
                 '-vf', f"subtitles={subtitles_file_path}:force_style='Fontname={font_name},Fontsize={font_size},PrimaryColour=&H{font_color}&'",
@@ -319,31 +318,26 @@ class SubtitleNode:
                 '-y',  # Ghi đè file nếu đã tồn tại
                 temp_output_path
             ]
-    
-            # Thêm log để in lệnh FFmpeg
-            print("FFmpeg command: ", " ".join(ffmpeg_cmd))
-    
-            # Chạy lệnh FFmpeg
             subprocess.run(ffmpeg_cmd, check=True)
-    
+
             # Kiểm tra xem file đã được tạo thành công hay chưa
             if os.path.exists(temp_output_path):
-                return temp_output_path  # Trả về đường dẫn đến file video đầu ra
+                # Tải file lên Google Drive
+                output_video_url = self.google_drive_uploader.upload_to_drive(temp_output_path)
+                return output_video_url
             else:
                 raise FileNotFoundError(f"Output video not found at {temp_output_path}")
-    
+
         except subprocess.CalledProcessError as e:
-            print(f"FFMPEG error: {e.stderr}")  # In ra lỗi nếu có từ FFmpeg
             raise RuntimeError(f"FFMPEG failed with error: {str(e)}")
-    
+
         except Exception as e:
             raise RuntimeError(f"Failed to embed subtitles: {str(e)}")
-    
+
         finally:
             # Xóa file tạm nếu tồn tại
             if temp_output_path and os.path.exists(temp_output_path):
                 os.unlink(temp_output_path)
-    
 
     def convert_time_for_vtt_and_srt(self, ms):
         seconds = ms // 1000
@@ -360,3 +354,4 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SubtitleNode": "Subtitle Node"
 }
+```
