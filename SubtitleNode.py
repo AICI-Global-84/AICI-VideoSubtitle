@@ -324,7 +324,7 @@ class SubtitleNode:
 
         return vtt_subtitle_path
 
-    def embed_subtitles(self, video_file_path, subtitles_file_path, font_name, font_size, font_color):
+    def embed_subtitles(self, video_file_path, subtitles_file_path, font_name, font_size, font_color, subtitle_position, subtitle_style):
         temp_output_path = None
     
         try:
@@ -332,10 +332,33 @@ class SubtitleNode:
             with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_output:
                 temp_output_path = temp_output.name
     
+            # Chuẩn bị các giá trị style phụ đề cho FFMPEG
+            style_options = f"Fontname={font_name},Fontsize={font_size},PrimaryColour=&H{font_color}&"
+    
+            # Thêm định dạng cho kiểu phụ đề (subtitle_style)
+            if subtitle_style == "bold":
+                style_options += ",Bold=1"
+            elif subtitle_style == "italic":
+                style_options += ",Italic=1"
+            elif subtitle_style == "bold-italic":
+                style_options += ",Bold=1,Italic=1"
+    
+            # Thêm định dạng cho vị trí phụ đề (subtitle_position)
+            if subtitle_position == "top":
+                style_options += ",Alignment=8"  # 8 là căn trên theo FFMPEG
+            elif subtitle_position == "middle":
+                style_options += ",Alignment=6"  # 6 là căn giữa
+            elif subtitle_position == "left":
+                style_options += ",Alignment=1"  # 1 là căn trái
+            elif subtitle_position == "right":
+                style_options += ",Alignment=3"  # 3 là căn phải
+            else:
+                style_options += ",Alignment=2"  # 2 là căn dưới (mặc định bottom)
+    
             # Chạy lệnh FFMPEG để nhúng phụ đề vào video
             ffmpeg_cmd = [
                 'ffmpeg', '-i', video_file_path,
-                '-vf', f"subtitles={subtitles_file_path}:force_style='Fontname={font_name},Fontsize={font_size},PrimaryColour=&H{font_color}&'",
+                '-vf', f"subtitles={subtitles_file_path}:force_style='{style_options}'",
                 '-c:a', 'copy',
                 '-c:v', 'libx264',
                 '-y',  # Ghi đè file nếu đã tồn tại
@@ -362,13 +385,14 @@ class SubtitleNode:
             if temp_output_path and os.path.exists(temp_output_path):
                 os.unlink(temp_output_path)
     
-
-    def convert_time_for_vtt_and_srt(self, ms):
-        seconds = ms // 1000
-        milliseconds = ms % 1000
-        minutes = seconds // 60
-        hours = minutes // 60
-        return f"{hours:02}:{minutes%60:02}:{seconds%60:02}.{milliseconds:03}"
+        
+    
+        def convert_time_for_vtt_and_srt(self, ms):
+            seconds = ms // 1000
+            milliseconds = ms % 1000
+            minutes = seconds // 60
+            hours = minutes // 60
+            return f"{hours:02}:{minutes%60:02}:{seconds%60:02}.{milliseconds:03}"
 
 # Cập nhật mappings cho node
 NODE_CLASS_MAPPINGS = {
