@@ -13,5 +13,5 @@
   "PARAMS_JSON_1_PATH": "./params_1.json",
   "PARAMS_JSON_2_PATH": "./params_2.json",
   "WORD_OPTIONS_JSON_PATH": "./word_options.json",
-  "FONTS_JSON_PATH": "./fonts.json"
+  "FONTS_JSON_PATH": "/content/ComfyUI/custom_nodes/AICI-VideoSubtitle/fonts.json"
 }
