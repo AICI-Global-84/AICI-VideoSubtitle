@@ -384,15 +384,13 @@ class SubtitleNode:
             # Xóa file tạm nếu tồn tại
             if temp_output_path and os.path.exists(temp_output_path):
                 os.unlink(temp_output_path)
-    
-        
-    
-        def convert_time_for_vtt_and_srt(self, ms):
-            seconds = ms // 1000
-            milliseconds = ms % 1000
-            minutes = seconds // 60
-            hours = minutes // 60
-            return f"{hours:02}:{minutes%60:02}:{seconds%60:02}.{milliseconds:03}"
+     
+    def convert_time_for_vtt_and_srt(self, ms):
+        seconds = ms // 1000
+        milliseconds = ms % 1000
+        minutes = seconds // 60
+        hours = minutes // 60
+        return f"{hours:02}:{minutes%60:02}:{seconds%60:02}.{milliseconds:03}"
 
 # Cập nhật mappings cho node
 NODE_CLASS_MAPPINGS = {
