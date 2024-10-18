@@ -188,16 +188,27 @@ class SubtitleNode:
                 "font_size": ("FLOAT", {"default": 24}),
                 "font_color": ("STRING", {"default": "FFFFFF"}),  # Màu ở dạng hex, bỏ đi dấu '#'
                 
-                # Thêm lựa chọn cho subtitle_position
-                "subtitle_position": ("OPTION", {
-                    "options": ["bottom", "top", "middle", "left", "right"],
-                    "default": "bottom"
+                # Cập nhật để sử dụng OPTION cho subtitle_position
+                "subtitle_position": ("STRING", {
+                    "default": "bottom",
+                    "options": [
+                        "bottom",
+                        "top",
+                        "middle",
+                        "left",
+                        "right"
+                    ]
                 }),
                 
-                # Thêm lựa chọn cho subtitle_style
-                "subtitle_style": ("OPTION", {
-                    "options": ["normal", "italic", "bold", "bold-italic"],
-                    "default": "normal"
+                # Cập nhật để sử dụng OPTION cho subtitle_style
+                "subtitle_style": ("STRING", {
+                    "default": "normal",
+                    "options": [
+                        "normal",
+                        "italic",
+                        "bold",
+                        "bold-italic"
+                    ]
                 }),
 
                 "translate_to_english": ("BOOLEAN", {"default": False})
@@ -206,6 +217,7 @@ class SubtitleNode:
 
     RETURN_TYPES = ("STRING",)
     FUNCTION = "process"
+
 
     def process(self, video_file, font_name, font_size, font_color, subtitle_position, subtitle_style, translate_to_english):
         extracted_audio_name = self.extract_audio(video_file)
