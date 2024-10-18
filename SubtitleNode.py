@@ -187,8 +187,19 @@ class SubtitleNode:
                 "font_name": ("STRING", {"default": "Arial"}),
                 "font_size": ("FLOAT", {"default": 24}),
                 "font_color": ("STRING", {"default": "FFFFFF"}),  # Màu ở dạng hex, bỏ đi dấu '#'
-                "subtitle_position": ("STRING", {"default": "bottom"}),
-                "subtitle_style": ("STRING", {"default": "normal"}),
+                
+                # Thêm lựa chọn cho subtitle_position
+                "subtitle_position": ("OPTION", {
+                    "options": ["bottom", "top", "middle", "left", "right"],
+                    "default": "bottom"
+                }),
+                
+                # Thêm lựa chọn cho subtitle_style
+                "subtitle_style": ("OPTION", {
+                    "options": ["normal", "italic", "bold", "bold-italic"],
+                    "default": "normal"
+                }),
+
                 "translate_to_english": ("BOOLEAN", {"default": False})
             }
         }
