@@ -310,7 +310,7 @@ class SubtitleNode:
             with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_output:
                 temp_output_path = temp_output.name
     
-            # Chạy lệnh FFMPEG để nhúng phụ đề vào video
+            # Lệnh FFMPEG để nhúng phụ đề vào video
             ffmpeg_cmd = [
                 'ffmpeg', '-i', video_file_path,
                 '-vf', f"subtitles={subtitles_file_path}:force_style='Fontname={font_name},Fontsize={font_size},PrimaryColour=&H{font_color}&'",
@@ -319,6 +319,11 @@ class SubtitleNode:
                 '-y',  # Ghi đè file nếu đã tồn tại
                 temp_output_path
             ]
+    
+            # Thêm log để in lệnh FFmpeg
+            print("FFmpeg command: ", " ".join(ffmpeg_cmd))
+    
+            # Chạy lệnh FFmpeg
             subprocess.run(ffmpeg_cmd, check=True)
     
             # Kiểm tra xem file đã được tạo thành công hay chưa
@@ -328,6 +333,7 @@ class SubtitleNode:
                 raise FileNotFoundError(f"Output video not found at {temp_output_path}")
     
         except subprocess.CalledProcessError as e:
+            print(f"FFMPEG error: {e.stderr}")  # In ra lỗi nếu có từ FFmpeg
             raise RuntimeError(f"FFMPEG failed with error: {str(e)}")
     
         except Exception as e:
@@ -337,6 +343,7 @@ class SubtitleNode:
             # Xóa file tạm nếu tồn tại
             if temp_output_path and os.path.exists(temp_output_path):
                 os.unlink(temp_output_path)
+    
 
     def convert_time_for_vtt_and_srt(self, ms):
         seconds = ms // 1000
