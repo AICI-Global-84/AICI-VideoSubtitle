@@ -227,8 +227,8 @@ class SubtitleNode:
             "eng_font": font_name,
             "font_size": font_size,
             "font_color": font_color,
-            "subtitle_position": subtitle_position,
-            "subtitle_style": subtitle_style
+            "subtitle_position": subtitle_position,  # Thêm vào đây
+            "subtitle_style": subtitle_style  # Thêm vào đây
         }
     
         transcript_text = self.generate_transcript_matrix(extracted_audio_name, params_dict)
@@ -240,10 +240,13 @@ class SubtitleNode:
             vtt_path,  # Đây là file phụ đề (subtitles) đã được tạo ra từ hàm convert_transcript_to_subtitles
             params_dict["eng_font"],  # Truyền tên font từ params_dict
             params_dict["font_size"],  # Truyền kích thước font từ params_dict
-            params_dict["font_color"]  # Truyền màu font từ params_dict
+            params_dict["font_color"],  # Truyền màu font từ params_dict
+            params_dict["subtitle_position"],  # Truyền vị trí phụ đề từ params_dict
+            params_dict["subtitle_style"]  # Truyền kiểu phụ đề từ params_dict
         )
     
         return (output_video_url,)  # Trả về đúng link Drive sau khi nhúng phụ đề thành công
+
 
 
     def extract_audio(self, video_file_path):
