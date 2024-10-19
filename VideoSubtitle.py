@@ -98,13 +98,13 @@ class GenerateTranscriptMatrix:
         
         # Tạo đường dẫn đầy đủ đến file âm thanh
         curr_audio_dir = f'{AUDIO_DIR}/{audio_file_name}'
-        audio_file_path = os.path.join(AUDIO_DIR, audio_file_name)  # Bây giờ đường dẫn này sẽ đúng
+        audio_file_path = os.path.join(AUDIO_DIR, audio_file_name)
         
         # Kiểm tra xem file có tồn tại không
         if not os.path.exists(audio_file_path):
             self.logger.error(f"Audio file not found: {audio_file_path}")
             return ("",)  # Trả về tuple rỗng nếu file không tồn tại
-    
+
         model_name = "large-v2"
         device = "cuda" if torch.cuda.is_available() else "cpu"
         model = whisper.load_model(model_name, device)
@@ -138,7 +138,8 @@ class GenerateTranscriptMatrix:
             for row in transcript_matrix
         ]
 
-        clean_audio_file_name = re.sub(r'[<>:"/\\|?*]', '_', audio_file_name)
+        # Làm sạch tên tệp âm thanh để tạo tên tệp JSON
+        clean_audio_file_name = re.sub(r'[<>:"/\\|?*=\&]', '_', audio_file_name)
         transcript_matrix_json_name = f'{clean_audio_file_name}_transcript.json'
         transcript_matrix_json_path = f'{JSON_DIR}/{transcript_matrix_json_name}'
         json_write(transcript_matrix_json_path, transcript_matrix_2d_list)
@@ -180,10 +181,9 @@ class FormatSubtitles:
     def format_subtitles(self, transcript_file_name, is_upper=False, word_options_key="default"):
         self.logger.info(f'Formatting subtitles for transcript: {transcript_file_name}')
 
-        # Trong node FormatSubtitles
-        clean_audio_file_name = re.sub(r'[<>:"/\\|?*]', '_', transcript_file_name)
-        transcript_json_path = f'{JSON_DIR}/{clean_audio_file_name}_transcript.json'  # Sử dụng cùng cách làm sạch tên file
-
+        # Làm sạch tên tệp transcript
+        clean_transcript_file_name = re.sub(r'[<>:"/\\|?*=\&]', '_', transcript_file_name)
+        transcript_json_path = f'{JSON_DIR}/{clean_transcript_file_name}_transcript.json'
 
         # Hàm này đọc file transcript JSON và chuyển đổi nó thành ma trận transcript
         def transcript_json_to_transcript_matrix(transcript_json_path):
