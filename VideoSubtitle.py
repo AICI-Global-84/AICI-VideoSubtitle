@@ -82,14 +82,26 @@ class VideoSubtitle:
         
         # Video processing and subtitle rendering
         video = VideoFileClip(video_path)
-        font_path = os.path.join(self.font_dir, f"{fontname}.ttf")  # Tạo đường dẫn đầy đủ cho font
-
+        # Đường dẫn tới thư mục chứa font
+        font_path = f"/content/ComfyUI/custom_nodes/AICI-VideoSubtitle/resources/fonts/english_fonts/{font_name}.ttf"
+        
+        # Đảm bảo rằng các màu sắc đang được định dạng đúng
+        primary_color = primary_color if primary_color.startswith("#") else "#" + primary_color[4:]
+        secondary_color = secondary_color if secondary_color.startswith("#") else "#" + secondary_color[4:]
+        outline_color = outline_color if outline_color.startswith("#") else "#" + outline_color[4:]
+        back_color = back_color if back_color.startswith("#") else "#" + back_color[4:]
+        # Kiểm tra đường dẫn font
+        if not os.path.exists(font_path):
+            raise ValueError(f"Font file not found at {font_path}")
         # Uppercase text if required
         if uppercase:
             subtitle_text = subtitle_text.upper()
 
         # Tạo TextClip cho phụ đề
-        subtitle = TextClip(subtitle_text, fontsize=fontsize, font=font_path, color=primary_color).set_position(('center', 'bottom')).set_duration(video.duration)
+        # Tạo subtitle
+        subtitle = TextClip(subtitle_text, fontsize=fontsize, font=font_path, color=primary_color) \
+                    .set_position(('center', 'bottom')) \
+                    .set_duration(video.duration)
         
         # Chèn phụ đề vào video
         final_video = CompositeVideoClip([video, subtitle])
