@@ -1,14 +1,20 @@
 from .SubtitleNode import SubtitleNode
-from .VideoSubtitle import VideoSubtitle
+from .VideoSubtitle import ExtractAudioFromVideo, GenerateTranscriptMatrix, FormatSubtitles, EmbedSubtitles
 
 NODE_CLASS_MAPPINGS = {
     "SubtitleNode": SubtitleNode,
-    "VideoSubtitle": VideoSubtitle
+    "ExtractAudioFromVideo": ExtractAudioFromVideo,
+    "GenerateTranscriptMatrix": GenerateTranscriptMatrix,
+    "FormatSubtitles": FormatSubtitles,
+    "EmbedSubtitles": EmbedSubtitles
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SubtitleNode": "Subtitle Node",
-    "VideoSubtitle": "Video Subtitle Generator"
+    "ExtractAudioFromVideo": "Extract Audio from Video URL",
+    "GenerateTranscriptMatrix": "Generate Transcript Matrix",
+    "FormatSubtitles": "Format Subtitles",
+    "EmbedSubtitles": "Embed Subtitles"
 }
 
 __all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']
