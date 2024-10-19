@@ -180,7 +180,10 @@ class FormatSubtitles:
     def format_subtitles(self, transcript_file_name, is_upper=False, word_options_key="default"):
         self.logger.info(f'Formatting subtitles for transcript: {transcript_file_name}')
 
-        transcript_json_path = f'{JSON_DIR}/{transcript_file_name}_transcript.json'
+        # Trong node FormatSubtitles
+        clean_audio_file_name = re.sub(r'[<>:"/\\|?*]', '_', transcript_file_name)
+        transcript_json_path = f'{JSON_DIR}/{clean_audio_file_name}_transcript.json'  # Sử dụng cùng cách làm sạch tên file
+
 
         # Hàm này đọc file transcript JSON và chuyển đổi nó thành ma trận transcript
         def transcript_json_to_transcript_matrix(transcript_json_path):
