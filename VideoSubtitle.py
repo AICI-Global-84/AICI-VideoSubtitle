@@ -1,23 +1,19 @@
 import os
-import json
-import requests
+import ffmpeg
+import whisper
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
-from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
-from moviepy.config import change_settings
-# Cấu hình đường dẫn ImageMagick
-change_settings({"IMAGEMAGICK_BINARY": "/usr/bin/convert"})
 
 class VideoSubtitle:
     def __init__(self):
         self.drive_service = self.authenticate_google_drive()
-        self.font_dir = "/content/resources/fonts/english_fonts/"  # Thay đổi đường dẫn này nếu cần
+        self.model = whisper.load_model("base")  # Load the Whisper model
 
     def authenticate_google_drive(self):
-        """Xác thực Google Drive API."""
+        """Authenticate and create a Google Drive API service."""
         SCOPES = ['https://www.googleapis.com/auth/drive']
-        credentials_path = '/content/drive/My Drive/SD-Data/comfyui-n8n-aici01-7679b55c962b.json'  # Thay đổi đường dẫn này cho đúng
+        credentials_path = '/content/drive/My Drive/SD-Data/comfyui-n8n-aici01-7679b55c962b.json'
         credentials = service_account.Credentials.from_service_account_file(
             credentials_path, scopes=SCOPES)
         return build('drive', 'v3', credentials=credentials)
@@ -26,38 +22,74 @@ class VideoSubtitle:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "video_url": ("STRING", {"default": "https://example.com/video.mp4", "tooltip": "URL của video."}),
-                "subtitle_text": ("STRING", {"default": "Your subtitle text here", "tooltip": "Text phụ đề."}),
-                "fontname": (["Pricedown", "Komika Axis", "Bungee-Regular", "Kalam"], {"default": "Pricedown", "tooltip": "Chọn font cho phụ đề."}),
-                "fontsize": ("INT", {"default": 20, "min": 10, "max": 100, "step": 1, "tooltip": "Kích cỡ font chữ."}),
-                "primary_color": ("STRING", {"default": "&H00FFFFFF", "tooltip": "Màu chính của phụ đề."}),
-                "secondary_color": ("STRING", {"default": "&H000000FF", "tooltip": "Màu phụ của phụ đề."}),
-                "outline_color": ("STRING", {"default": "&H80000000", "tooltip": "Màu viền của phụ đề."}),
-                "back_color": ("STRING", {"default": "&H40000000", "tooltip": "Màu nền phụ đề."}),
-                "bold": ("INT", {"default": 0, "tooltip": "In đậm (1 là bật, 0 là tắt)."}),
-                "italic": ("INT", {"default": 0, "tooltip": "In nghiêng (1 là bật, 0 là tắt)."}),
-                "underline": ("INT", {"default": 0, "tooltip": "Gạch chân (1 là bật, 0 là tắt)."}),
-                "uppercase": ("INT", {"default": 0, "tooltip": "Viết hoa (1 là bật, 0 là tắt)."}),
-                "outline": ("INT", {"default": 2, "min": 0, "max": 10, "tooltip": "Độ dày viền chữ."}),
-                "alignment": ("INT", {"default": 2, "tooltip": "Căn chỉnh văn bản (2 là giữa, 7 là dưới)."}),
-                "marginL": ("INT", {"default": 20, "min": 0, "max": 100, "tooltip": "Lề trái."}),
-                "marginR": ("INT", {"default": 20, "min": 0, "max": 100, "tooltip": "Lề phải."}),
-                "marginV": ("INT", {"default": 20, "min": 0, "max": 100, "tooltip": "Lề dọc."}),
-                "max_line_count": ("INT", {"default": 2, "min": 1, "max": 10, "tooltip": "Số dòng tối đa."}),
-                "max_words_per_line": ("INT", {"default": 10, "min": 1, "max": 20, "tooltip": "Số từ tối đa trên một dòng."}),
-                "karaoke": ("INT", {"default": 0, "tooltip": "Chế độ Karaoke (1 là bật, 0 là tắt)."})
+                "video_url": ("STRING", {"default": "https://example.com/video.mp4", "tooltip": "The direct URL of the video."}),
+                "fontname": ("STRING", {"default": "Arial", "tooltip": "Font name for subtitles."}),
+                "fontsize": ("INT", {"default": 20, "min": 10, "max": 100, "step": 1, "tooltip": "Font size for subtitles."}),
+                "primary_color": ("STRING", {"default": "white", "tooltip": "Primary subtitle color."}),
+                "alignment": ("INT", {"default": 2, "min": 0, "max": 9, "tooltip": "Subtitle alignment (e.g. 2 for center, 7 for bottom)."})
             }
         }
 
     RETURN_TYPES = ("STRING",)
-    FUNCTION = "generate_subtitle"
-    OUTPUT_NODE = True
+    RETURN_NAMES = ("video_url",)
+    FUNCTION = "process_video"
     CATEGORY = "video"
 
+    def download_video(self, video_url):
+        """Download video from URL."""
+        output_path = "/tmp/input_video.mp4"
+        os.system(f"wget -O {output_path} {video_url}")
+        return output_path
+
+    def extract_audio(self, video_path):
+        """Extract audio from video using ffmpeg."""
+        audio_path = "/tmp/audio.wav"
+        ffmpeg.input(video_path).output(audio_path).run()
+        return audio_path
+
+    def transcribe_audio(self, audio_path):
+        """Transcribe audio using Whisper model."""
+        result = self.model.transcribe(audio_path)
+        return result["text"], result["segments"]
+
+    def generate_subtitles(self, segments, output_path, fontname, fontsize, primary_color, alignment):
+        """Generate subtitle file in ASS format using transcribed segments."""
+        subtitle_path = f"{output_path}.ass"
+        with open(subtitle_path, "w") as f:
+            f.write(f"""[Script Info]
+Title: Subtitles
+ScriptType: v4.00+
+PlayDepth: 0
+
+[V4+ Styles]
+Style: Default,{fontname},{fontsize},{primary_color},&H000000FF,&H00000000,-1,0,0,0,100,100,0,2,{alignment},20,20,20,1
+
+[Events]
+Format: Layer, Start, End, Style, Text
+""")
+            for segment in segments:
+                start_time = self.convert_time(segment["start"])
+                end_time = self.convert_time(segment["end"])
+                text = segment["text"]
+                f.write(f"Dialogue: 0,{start_time},{end_time},Default,,0,0,0,,{text}\n")
+        return subtitle_path
+
+    def convert_time(self, seconds):
+        """Convert time in seconds to ASS format (H:MM:SS.CS)."""
+        hours, remainder = divmod(seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{int(hours)}:{int(minutes):02}:{int(seconds):05.2f}"
+
+    def add_subtitles_to_video(self, video_path, subtitle_path):
+        """Add subtitles to video using ffmpeg."""
+        output_video_path = "/tmp/output_video.mp4"
+        ffmpeg.input(video_path).output(output_video_path, vf=f"ass={subtitle_path}").run()
+        return output_video_path
+
     def upload_to_google_drive(self, video_path):
-        """Upload video lên Google Drive và trả về URL công khai."""
+        """Upload video to Google Drive and return the shared URL."""
         try:
-            file_metadata = {'name': os.path.basename(video_path), 'parents': ['1fZyeDT_eW6ozYXhqi_qLVy-Xnu5JD67a']}  # ID folder
+            file_metadata = {'name': os.path.basename(video_path), 'parents': ['1fZyeDT_eW6ozYXhqi_qLVy-Xnu5JD67a']}
             media = MediaFileUpload(video_path, mimetype='video/mp4')
             file = self.drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
 
@@ -65,58 +97,37 @@ class VideoSubtitle:
             self.drive_service.permissions().create(fileId=file_id, body={'type': 'anyone', 'role': 'reader'}).execute()
             return f"https://drive.google.com/uc?id={file_id}"
         except Exception as e:
-            print(f"Upload thất bại: {e}")
+            print(f"An error occurred while uploading to Google Drive: {e}")
             return None
 
-    def generate_subtitle(self, video_url, subtitle_text, fontname, fontsize, primary_color, secondary_color, outline_color, back_color, 
-                          bold, italic, underline, uppercase, outline, alignment, marginL, marginR, marginV, max_line_count, 
-                          max_words_per_line, karaoke):
-        """Xử lý và tạo phụ đề cho video từ URL."""
-        video_path = "/tmp/input_video.mp4"
-        subtitle_video_path = "/tmp/output_video_with_subtitle.mp4"
-        
-        # Download video from URL
-        response = requests.get(video_url)
-        with open(video_path, 'wb') as f:
-            f.write(response.content)
-        
-        # Video processing and subtitle rendering
-        video = VideoFileClip(video_path)
-        # Đường dẫn tới thư mục chứa font
-        font_path = f"/content/ComfyUI/custom_nodes/AICI-VideoSubtitle/resources/fonts/english_fonts/Bungee-Font-Family/{fontname}.ttf"
-        
-        # Đảm bảo rằng các màu sắc đang được định dạng đúng
-        primary_color = primary_color if primary_color.startswith("#") else "#" + primary_color[4:]
-        secondary_color = secondary_color if secondary_color.startswith("#") else "#" + secondary_color[4:]
-        outline_color = outline_color if outline_color.startswith("#") else "#" + outline_color[4:]
-        back_color = back_color if back_color.startswith("#") else "#" + back_color[4:]
-        # Kiểm tra đường dẫn font
-        if not os.path.exists(font_path):
-            raise ValueError(f"Font file not found at {font_path}")
-        # Uppercase text if required
-        if uppercase:
-            subtitle_text = subtitle_text.upper()
+    def process_video(self, video_url, fontname="Arial", fontsize=20, primary_color="white", alignment=2):
+        """Main function to process video and generate subtitles."""
+        # Step 1: Download video
+        video_path = self.download_video(video_url)
 
-        # Tạo TextClip cho phụ đề
-        # Tạo subtitle
-        subtitle = TextClip(subtitle_text, fontsize=fontsize, font=font_path, color=primary_color) \
-                    .set_position(('center', 'bottom')) \
-                    .set_duration(video.duration)
-        
-        # Chèn phụ đề vào video
-        final_video = CompositeVideoClip([video, subtitle])
-        final_video.write_videofile(subtitle_video_path, codec='libx264', audio_codec='aac')
+        # Step 2: Extract audio from video
+        audio_path = self.extract_audio(video_path)
 
-        # Upload video output lên Google Drive
-        public_url = self.upload_to_google_drive(subtitle_video_path)
+        # Step 3: Transcribe audio to text using Whisper
+        transcript, segments = self.transcribe_audio(audio_path)
+
+        # Step 4: Generate subtitle file
+        subtitle_path = self.generate_subtitles(segments, "/tmp/subtitles", fontname, fontsize, primary_color, alignment)
+
+        # Step 5: Add subtitles to video
+        output_video_path = self.add_subtitles_to_video(video_path, subtitle_path)
+
+        # Step 6: Upload video to Google Drive and get public URL
+        public_url = self.upload_to_google_drive(output_video_path)
 
         return (public_url,)
 
-# Cấu hình node và hiển thị
+# A dictionary that contains all nodes you want to export with their names
 NODE_CLASS_MAPPINGS = {
     "VideoSubtitle": VideoSubtitle
 }
 
+# A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "VideoSubtitle": "Video Subtitle Generator"
+    "VideoSubtitle": "Video Subtitle Node"
 }
