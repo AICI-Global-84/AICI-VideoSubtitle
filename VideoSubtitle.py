@@ -5,6 +5,9 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
+from moviepy.config import change_settings
+# Cấu hình đường dẫn ImageMagick
+change_settings({"IMAGEMAGICK_BINARY": "/usr/bin/convert"})
 
 class VideoSubtitle:
     def __init__(self):
