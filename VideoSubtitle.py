@@ -1,10 +1,12 @@
 import json
 import os
+import subprocess
+import time
 import requests
 import torch
 import whisper
 from moviepy.editor import VideoFileClip
-from _utils import AUDIO_DIR, create_new_logger, generate_unique_file_name, get_curr_logger, AUDIO_DIR, Timestamped_word, JSON_DIR, json_write, write_text_file, word_options_index_map, json_read, word_options_json_path, SUBTITLES_DIR
+from _utils import AUDIO_DIR, create_new_logger, generate_unique_file_name, get_curr_logger, Timestamped_word, JSON_DIR, json_write, write_text_file, word_options_index_map, json_read, word_options_json_path, SUBTITLES_DIR, TMP_OUTPUT_DIR, generate_current_time_suffix, video_quality_map, FONTS_JSON_PATH, FONTS_DIR
  
 
 class ExtractAudioFromVideo:
@@ -222,16 +224,82 @@ class FormatSubtitles:
         return "\n".join(vtt_lines), "\n".join(srt_lines)
 
 
+class EmbedSubtitles:
+    def __init__(self):
+        self.logger = get_curr_logger()
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "input_video_path": ("STRING", {"tooltip": "Đường dẫn video đầu vào."}),
+                "file_name": ("STRING", {"tooltip": "Tên file phụ đề đã được tạo."}),
+                "video_quality_key": ("STRING", {"tooltip": "Khóa chất lượng video."}),
+                "eng_font": ("STRING", {"tooltip": "Tên font chữ tiếng Anh."}),
+            },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("output_video_path",)
+    FUNCTION = "embed_subtitles"
+    CATEGORY = "Subtitles Processing"
+
+    def embed_subtitles(self, input_video_path, file_name, video_quality_key, eng_font):
+        start_time = time.time()
+        
+        self.logger.info(f'Embedding subtitles into video: {input_video_path}')
+        
+        curr_subtitles_dir = f"{SUBTITLES_DIR}/{file_name}"
+        subtitles_path = f"{curr_subtitles_dir}/{file_name}.vtt"
+        curr_tmp_output_dir = f"{TMP_OUTPUT_DIR}/{file_name}"
+        os.makedirs(curr_tmp_output_dir, exist_ok=True)
+        video_ext = "mp4"
+        output_video_path = f"{curr_tmp_output_dir}/{file_name[:-16]}_{generate_current_time_suffix()}.{video_ext}"
+
+        crf = video_quality_map[video_quality_key]
+        fonts_dict = json_read(FONTS_JSON_PATH)
+
+        font_lang = "english_fonts"
+        font_file_name = fonts_dict[font_lang][eng_font]
+        font_path = f'{FONTS_DIR}/{font_lang}/{font_file_name}'
+
+        self.logger.info(f'Using font: {eng_font} from path: {font_path}')
+        
+        ffmpeg_cmd = [
+            'ffmpeg',
+            '-i', input_video_path,  # Input video file
+            "-vf", f"subtitles={subtitles_path}:fontsdir={font_path}:force_style='Fontname={eng_font}'",
+            '-c:a', 'copy',           # Copy audio codec
+            '-c:v', 'libx264',        # Re-encode video codec
+            '-preset', 'ultrafast',   # Preset for faster encoding
+            '-crf', f'{crf}',         # Constant Rate Factor for quality
+            '-y',                      # Overwrite output files without asking
+            output_video_path         # Output video file
+        ]
+
+        # Run ffmpeg command
+        subprocess.run(ffmpeg_cmd)
+
+        end_time = time.time()
+        elapsed_time = int(end_time - start_time)
+        self.logger.info(f'Time taken to complete embedding: {elapsed_time} seconds')
+
+        self.logger.info('Subtitles were successfully embedded into the input video')
+        return output_video_path
+
+
 # A dictionary that contains all nodes you want to export with their names
 NODE_CLASS_MAPPINGS = {
     "ExtractAudioFromVideo": ExtractAudioFromVideo,
     "GenerateTranscriptMatrix": GenerateTranscriptMatrix,
-    "FormatSubtitles": FormatSubtitles
+    "FormatSubtitles": FormatSubtitles,
+    "EmbedSubtitles": EmbedSubtitles
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "ExtractAudioFromVideo": "Extract Audio from Video URL",
     "GenerateTranscriptMatrix": "Generate Transcript Matrix",
-    "FormatSubtitles": "Format Subtitles"
+    "FormatSubtitles": "Format Subtitles",
+    "EmbedSubtitles": "Embed Subtitles"
 }
