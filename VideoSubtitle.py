@@ -96,15 +96,13 @@ class GenerateTranscriptMatrix:
     def generate_transcript(self, audio_file_name, translate_to_english=False):
         self.logger.info(f'Processing audio file: {audio_file_name}')
         
-        # Tạo đường dẫn đầy đủ đến file âm thanh
         curr_audio_dir = f'{AUDIO_DIR}/{audio_file_name}'
         audio_file_path = os.path.join(AUDIO_DIR, audio_file_name)
-        
-        # Kiểm tra xem file có tồn tại không
+
         if not os.path.exists(audio_file_path):
             self.logger.error(f"Audio file not found: {audio_file_path}")
-            return ("",)  # Trả về tuple rỗng nếu file không tồn tại
-
+            return ("",)  # Return empty tuple if file doesn't exist
+    
         model_name = "large-v2"
         device = "cuda" if torch.cuda.is_available() else "cpu"
         model = whisper.load_model(model_name, device)
@@ -116,7 +114,7 @@ class GenerateTranscriptMatrix:
             result = model.transcribe(audio_file_path, task=task, word_timestamps=True)
         except Exception as e:
             self.logger.exception(f"Failed to transcribe audio: {e}")
-            return ("",)  # Trả về tuple rỗng nếu có lỗi trong quá trình transcribe
+            return ("",)  # Return empty tuple on transcription failure
      
         segments = result['segments']
         transcript_matrix = []
@@ -138,12 +136,11 @@ class GenerateTranscriptMatrix:
             for row in transcript_matrix
         ]
 
-        # Làm sạch tên tệp âm thanh để tạo tên tệp JSON
+        # Clean the audio file name to create valid JSON file name
         clean_audio_file_name = re.sub(r'[<>:"/\\|?*=\&]', '_', audio_file_name)
         transcript_matrix_json_name = f'{clean_audio_file_name}_transcript.json'
-        transcript_matrix_json_path = f'{JSON_DIR}/{transcript_matrix_json_name}'
+        transcript_matrix_json_path = os.path.join(JSON_DIR, transcript_matrix_json_name)  # Using os.path.join for safety
         json_write(transcript_matrix_json_path, transcript_matrix_2d_list)
-
 
         lines = []
         for i in range(len(transcript_matrix)):
@@ -151,10 +148,9 @@ class GenerateTranscriptMatrix:
             lines.append(line)
         transcript_text = "\n".join(lines)
 
-        transcript_text_file_name = f'{audio_file_name}_tt.txt'
-        transcript_text_file_path = f'{JSON_DIR}/{transcript_text_file_name}'  # Lưu trực tiếp vào JSON_DIR
+        transcript_text_file_name = f'{clean_audio_file_name}_tt.txt'  # Update to match cleaned name
+        transcript_text_file_path = os.path.join(JSON_DIR, transcript_text_file_name)  # Save directly to JSON_DIR
         write_text_file(transcript_text_file_path, transcript_text)
-
 
         return (transcript_text_file_name,)
 
@@ -181,11 +177,11 @@ class FormatSubtitles:
     def format_subtitles(self, transcript_file_name, is_upper=False, word_options_key="default"):
         self.logger.info(f'Formatting subtitles for transcript: {transcript_file_name}')
 
-        # Làm sạch tên tệp transcript
+        # Clean transcript file name to create valid path
         clean_transcript_file_name = re.sub(r'[<>:"/\\|?*=\&]', '_', transcript_file_name)
-        transcript_json_path = f'{JSON_DIR}/{clean_transcript_file_name}_transcript.json'
+        transcript_json_path = os.path.join(JSON_DIR, f'{clean_transcript_file_name}_transcript.json')  # Using os.path.join
 
-        # Hàm này đọc file transcript JSON và chuyển đổi nó thành ma trận transcript
+        # Function to read JSON file and convert to transcript matrix
         def transcript_json_to_transcript_matrix(transcript_json_path):
             with open(transcript_json_path, 'r') as f:
                 transcript_matrix_dict = json.load(f)
