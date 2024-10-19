@@ -28,7 +28,7 @@ class VideoSubtitle:
             "required": {
                 "video_url": ("STRING", {"default": "https://example.com/video.mp4", "tooltip": "URL của video."}),
                 "subtitle_text": ("STRING", {"default": "Your subtitle text here", "tooltip": "Text phụ đề."}),
-                "fontname": (["Pricedown", "Komika Axis", "Bungee", "Kalam"], {"default": "Pricedown", "tooltip": "Chọn font cho phụ đề."}),
+                "fontname": (["Pricedown", "Komika Axis", "Bungee-Regular", "Kalam"], {"default": "Pricedown", "tooltip": "Chọn font cho phụ đề."}),
                 "fontsize": ("INT", {"default": 20, "min": 10, "max": 100, "step": 1, "tooltip": "Kích cỡ font chữ."}),
                 "primary_color": ("STRING", {"default": "&H00FFFFFF", "tooltip": "Màu chính của phụ đề."}),
                 "secondary_color": ("STRING", {"default": "&H000000FF", "tooltip": "Màu phụ của phụ đề."}),
@@ -83,7 +83,7 @@ class VideoSubtitle:
         # Video processing and subtitle rendering
         video = VideoFileClip(video_path)
         # Đường dẫn tới thư mục chứa font
-        font_path = f"/content/ComfyUI/custom_nodes/AICI-VideoSubtitle/resources/fonts/english_fonts/{fontname}.ttf"
+        font_path = f"/content/ComfyUI/custom_nodes/AICI-VideoSubtitle/resources/fonts/english_fonts/Bungee-Font-Family/{fontname}.ttf"
         
         # Đảm bảo rằng các màu sắc đang được định dạng đúng
         primary_color = primary_color if primary_color.startswith("#") else "#" + primary_color[4:]
