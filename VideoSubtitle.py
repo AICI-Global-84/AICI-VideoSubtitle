@@ -167,90 +167,106 @@ class FormatSubtitles:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "file_name": ("STRING", {"tooltip": "Tên file phụ đề sẽ được tạo."}),
-                "is_upper": ("BOOLEAN", {"default": False, "tooltip": "Chọn để biến tất cả chữ cái thành chữ hoa."}),
-                "word_options_key": ("STRING", {"tooltip": "Khóa cho các tùy chọn từ."}),
+                "transcript_file_name": ("STRING", {"tooltip": "Tên file transcript."}),
+                "is_upper": ("BOOLEAN", {"default": False, "tooltip": "Chọn để viết hoa tất cả các từ."}),
+                "word_options_key": ("STRING", {"default": "default", "tooltip": "Key cho tùy chọn từ ngữ."}),
             },
         }
 
-    RETURN_TYPES = ("STRING", "STRING")
-    RETURN_NAMES = ("vtt_subtitle_path", "srt_subtitle_path")
+    RETURN_TYPES = ("STRING", "STRING",)
+    RETURN_NAMES = ("vtt_subtitle_path", "srt_subtitle_path",)
     FUNCTION = "format_subtitles"
-    CATEGORY = "Subtitles Processing"
+    CATEGORY = "Subtitle Processing"
 
-    def format_subtitles(self, file_name, is_upper=False, word_options_key="default"):
-        # Khởi tạo đường dẫn cho thư mục JSON và thư mục phụ đề
-        curr_json_dir = f'{JSON_DIR}/{file_name}'
-        curr_subtitles_dir = f'{SUBTITLES_DIR}/{file_name}'
-    
-        # Tạo thư mục nếu chưa tồn tại
-        os.makedirs(curr_json_dir, exist_ok=True)
-        os.makedirs(curr_subtitles_dir, exist_ok=True)
-    
-        self.logger.info(f'Formatting subtitles for file: {file_name}')
-        transcript_json_name = f'{file_name}_transcript.json'
-        transcript_json_path = f'{curr_json_dir}/{transcript_json_name}'  # Chuyển dòng này lên đây
-    
-        # Kiểm tra xem tệp JSON có tồn tại không
-        if not os.path.exists(transcript_json_path):
-            self.logger.error(f'Transcript JSON not found: {transcript_json_path}')
-            return ("", "")  # Trả về tuple rỗng nếu không tìm thấy tệp
-    
-        # Chuyển đổi JSON transcript thành ma trận transcript
-        transcript_matrix = self.transcript_json_to_transcript_matrix(transcript_json_path)
-    
-        # Chuẩn bị phụ đề dựa trên ma trận transcript
-        vtt_text, srt_text = self.convert_transcript_to_subtitles(transcript_matrix, file_name, is_upper, word_options_key)
-    
-        # Lưu phụ đề vào tệp
-        vtt_subtitle_path = f'{curr_subtitles_dir}/{file_name}.vtt'
-        srt_subtitle_path = f'{curr_subtitles_dir}/{file_name}.srt'
-        write_text_file(vtt_subtitle_path, vtt_text)
-        write_text_file(srt_subtitle_path, srt_text)
-    
-        self.logger.info(f'Generated subtitles at: {vtt_subtitle_path} and {srt_subtitle_path}')
-        return vtt_subtitle_path, srt_subtitle_path
+    def format_subtitles(self, transcript_file_name, is_upper=False, word_options_key="default"):
+        self.logger.info(f'Formatting subtitles for transcript: {transcript_file_name}')
 
+        curr_json_dir = f'{JSON_DIR}/{transcript_file_name}'
+        transcript_json_path = f'{curr_json_dir}/{transcript_file_name}_transcript.json'
 
-    def dict_to_timestamped_word(self, d):
-        return Timestamped_word(
-            start_time=d["start_time"],
-            end_time=d["end_time"],
-            word=d["word"]
-        )
+        # Hàm này đọc file transcript JSON và chuyển đổi nó thành ma trận transcript
+        def transcript_json_to_transcript_matrix(transcript_json_path):
+            with open(transcript_json_path, 'r') as f:
+                transcript_matrix_dict = json.load(f)
+            transcript_matrix = [
+                [Timestamped_word(**word_dict) for word_dict in row]
+                for row in transcript_matrix_dict
+            ]
+            return transcript_matrix
 
-    def transcript_json_to_transcript_matrix(self, transcript_json_path):
-        with open(transcript_json_path, 'r') as f:
-            transcript_matrix_dict = json.load(f)
+        # Chuyển đổi thời gian cho phụ đề VTT và SRT
+        def convert_time_for_vtt_and_srt(time_in_ms, format):
+            hours = int(time_in_ms // 3600000)
+            minutes = int((time_in_ms % 3600000) // 60000)
+            seconds = int((time_in_ms % 60000) // 1000)
+            ms = int(time_in_ms % 1000)
 
-        return [
-            [self.dict_to_timestamped_word(word_dict) for word_dict in row]
-            for row in transcript_matrix_dict
-        ]
+            if format == ".vtt":
+                time_string = f"{minutes:02}:{seconds:02}.{ms:03}"  # MM:SS.MSS
+            else:
+                time_string = f"{hours:02}:{minutes:02}:{seconds:02},{ms:03}"  # HH:MM:SS,MS
+            return time_string
 
-    def convert_time_for_vtt_and_srt(self, time_in_ms, format):
-        hours = int(time_in_ms // 3600000)
-        minutes = int((time_in_ms % 3600000) // 60000)
-        seconds = int((time_in_ms % 60000) // 1000)
-        ms = int(time_in_ms % 1000)
-        if format == ".vtt":
-            time_string = f"{minutes:02}:{seconds:02}.{ms:03}"
-        else:
-            time_string = f"{hours:02}:{minutes:02}:{seconds:02},{ms:03}"
-        return time_string
+        # Đọc ma trận transcript từ file JSON
+        transcript_matrix = transcript_json_to_transcript_matrix(transcript_json_path)
 
-    def convert_transcript_to_subtitles(self, transcript_matrix, file_name, is_upper, word_options_key):
-        # ... (Sử dụng logic từ mã của bạn để tạo ra phụ đề từ transcript_matrix)
-        lines = []
+        # Đọc các tùy chọn từ ngữ từ file JSON
+        word_options = json_read(word_options_json_path)
+        word_options_index = word_options_index_map[word_options_key]
+        max_words_per_line = int(word_options[word_options_index]["max_words_per_line"])
+        max_line_width = int(word_options[word_options_index]["max_line_width"])
+
         vtt_lines = ["WEBVTT\n"]
         srt_lines = []
         srt_index = 1
+        curr_num_words = 0
+        curr_length = 0
+        vtt_line = ""
 
-        # Logic để tạo vtt và srt từ transcript_matrix (giống với phần mã đã cung cấp trước đó)
-        # Thêm vào đây mã để xử lý chuyển đổi và thêm các dòng phụ đề vào vtt_lines và srt_lines
+        for i in range(len(transcript_matrix)):
+            for j in range(len(transcript_matrix[i])):
+                current_word = transcript_matrix[i][j].word
+                if is_upper:
+                    current_word = current_word.upper()
 
-        # Trả về nội dung phụ đề vtt và srt
-        return "\n".join(vtt_lines), "\n".join(srt_lines)
+                word_start_time = transcript_matrix[i][j].start_time
+                word_end_time = transcript_matrix[i][j].end_time
+
+                if curr_num_words == 0:
+                    line_start_time = word_start_time
+
+                vtt_line += current_word + " "
+                curr_num_words += 1
+                curr_length += len(current_word)
+                line_end_time = word_end_time
+
+                if (
+                    current_word.endswith((".", "?"))
+                    or curr_length >= max_line_width
+                    or curr_num_words == max_words_per_line
+                ):
+                    vtt_lines.append(f"{convert_time_for_vtt_and_srt(line_start_time, '.vtt')} --> "
+                                     f"{convert_time_for_vtt_and_srt(line_end_time, '.vtt')}\n{vtt_line[:-1]}\n")
+                    srt_lines.append(f"{srt_index}\n{convert_time_for_vtt_and_srt(line_start_time, '.srt')} --> "
+                                     f"{convert_time_for_vtt_and_srt(line_end_time, '.srt')}\n{vtt_line[:-1]}\n")
+                    srt_index += 1
+                    curr_num_words = 0
+                    curr_length = 0
+                    vtt_line = ""
+
+        vtt_text = "\n".join(vtt_lines)
+        srt_text = "\n".join(srt_lines)
+
+        curr_subtitles_dir = f'{SUBTITLES_DIR}/{transcript_file_name}'
+        os.makedirs(curr_subtitles_dir, exist_ok=True)
+
+        vtt_subtitle_path = f'{curr_subtitles_dir}/{transcript_file_name}.vtt'
+        srt_subtitle_path = f'{curr_subtitles_dir}/{transcript_file_name}.srt'
+        write_text_file(vtt_subtitle_path, vtt_text)
+        write_text_file(srt_subtitle_path, srt_text)
+
+        self.logger.info(f'Subtitles generated: {vtt_subtitle_path}, {srt_subtitle_path}')
+        return vtt_subtitle_path, srt_subtitle_path
 
 
 class EmbedSubtitles:
