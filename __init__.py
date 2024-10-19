@@ -1,4 +1,6 @@
-from .SubtitleNode import SubtitleNode, VideoSubtitle
+from .SubtitleNode import SubtitleNode
+from .VideoSubtitle import VideoSubtitle
+
 NODE_CLASS_MAPPINGS = {
     "SubtitleNode": SubtitleNode,
     "VideoSubtitle": VideoSubtitle
