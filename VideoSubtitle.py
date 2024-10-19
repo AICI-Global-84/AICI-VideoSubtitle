@@ -145,11 +145,18 @@ class GenerateTranscriptMatrix:
         json_write(transcript_matrix_json_path, transcript_matrix_2d_list)
 
         # Tạo transcript text file
+        lines = []
+        for i in range(len(transcript_matrix)):
+            line = " | ".join(word_instance.word for word_instance in transcript_matrix[i])
+            lines.append(line)
+        transcript_text = "\n".join(lines)
+
         transcript_text_file_name = f'{clean_audio_file_name}_tt.txt'
         transcript_text_file_path = os.path.join(JSON_DIR, transcript_text_file_name)
         write_text_file(transcript_text_file_path, transcript_text)
 
         return (transcript_text_file_name, transcript_matrix_json_name)  # Trả về cả 2 tên file
+
      
 
 class FormatSubtitles:
