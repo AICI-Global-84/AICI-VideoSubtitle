@@ -4,8 +4,8 @@ import requests
 import torch
 import whisper
 from moviepy.editor import VideoFileClip
-from _utils import AUDIO_DIR, create_new_logger, generate_unique_file_name, get_curr_logger, AUDIO_DIR, Timestamped_word, JSON_DIR, json_write, write_text_file
-
+from _utils import AUDIO_DIR, create_new_logger, generate_unique_file_name, get_curr_logger, AUDIO_DIR, Timestamped_word, JSON_DIR, json_write, write_text_file, word_options_index_map, json_read, word_options_json_path, SUBTITLES_DIR
+ 
 
 class ExtractAudioFromVideo:
     def __init__(self):
@@ -138,14 +138,100 @@ class GenerateTranscriptMatrix:
         return (transcript_text_file_name,)
 
 
+class FormatSubtitles:
+    def __init__(self):
+        self.logger = get_curr_logger()
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "file_name": ("STRING", {"tooltip": "Tên file phụ đề sẽ được tạo."}),
+                "is_upper": ("BOOLEAN", {"default": False, "tooltip": "Chọn để biến tất cả chữ cái thành chữ hoa."}),
+                "word_options_key": ("STRING", {"tooltip": "Khóa cho các tùy chọn từ."}),
+            },
+        }
+
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("vtt_subtitle_path", "srt_subtitle_path")
+    FUNCTION = "format_subtitles"
+    CATEGORY = "Subtitles Processing"
+
+    def format_subtitles(self, file_name, is_upper=False, word_options_key="default"):
+        self.logger.info(f'Formatting subtitles for file: {file_name}')
+        curr_json_dir = f'{JSON_DIR}/{file_name}'
+        transcript_json_name = f'{file_name}_transcript.json'
+        transcript_json_path = f'{curr_json_dir}/{transcript_json_name}'
+
+        # Convert JSON transcript to transcript matrix
+        transcript_matrix = self.transcript_json_to_transcript_matrix(transcript_json_path)
+
+        # Prepare subtitles based on the transcript matrix
+        vtt_text, srt_text = self.convert_transcript_to_subtitles(transcript_matrix, file_name, is_upper, word_options_key)
+
+        # Save subtitles to files
+        curr_subtitles_dir = f'{SUBTITLES_DIR}/{file_name}'
+        os.makedirs(curr_subtitles_dir, exist_ok=True)
+
+        vtt_subtitle_path = f'{curr_subtitles_dir}/{file_name}.vtt'
+        srt_subtitle_path = f'{curr_subtitles_dir}/{file_name}.srt'
+        write_text_file(vtt_subtitle_path, vtt_text)
+        write_text_file(srt_subtitle_path, srt_text)
+
+        self.logger.info(f'Generated subtitles at: {vtt_subtitle_path} and {srt_subtitle_path}')
+        return vtt_subtitle_path, srt_subtitle_path
+
+    def dict_to_timestamped_word(self, d):
+        return Timestamped_word(
+            start_time=d["start_time"],
+            end_time=d["end_time"],
+            word=d["word"]
+        )
+
+    def transcript_json_to_transcript_matrix(self, transcript_json_path):
+        with open(transcript_json_path, 'r') as f:
+            transcript_matrix_dict = json.load(f)
+
+        return [
+            [self.dict_to_timestamped_word(word_dict) for word_dict in row]
+            for row in transcript_matrix_dict
+        ]
+
+    def convert_time_for_vtt_and_srt(self, time_in_ms, format):
+        hours = int(time_in_ms // 3600000)
+        minutes = int((time_in_ms % 3600000) // 60000)
+        seconds = int((time_in_ms % 60000) // 1000)
+        ms = int(time_in_ms % 1000)
+        if format == ".vtt":
+            time_string = f"{minutes:02}:{seconds:02}.{ms:03}"
+        else:
+            time_string = f"{hours:02}:{minutes:02}:{seconds:02},{ms:03}"
+        return time_string
+
+    def convert_transcript_to_subtitles(self, transcript_matrix, file_name, is_upper, word_options_key):
+        # ... (Sử dụng logic từ mã của bạn để tạo ra phụ đề từ transcript_matrix)
+        lines = []
+        vtt_lines = ["WEBVTT\n"]
+        srt_lines = []
+        srt_index = 1
+
+        # Logic để tạo vtt và srt từ transcript_matrix (giống với phần mã đã cung cấp trước đó)
+        # Thêm vào đây mã để xử lý chuyển đổi và thêm các dòng phụ đề vào vtt_lines và srt_lines
+
+        # Trả về nội dung phụ đề vtt và srt
+        return "\n".join(vtt_lines), "\n".join(srt_lines)
+
+
 # A dictionary that contains all nodes you want to export with their names
 NODE_CLASS_MAPPINGS = {
     "ExtractAudioFromVideo": ExtractAudioFromVideo,
-    "GenerateTranscriptMatrix": GenerateTranscriptMatrix
+    "GenerateTranscriptMatrix": GenerateTranscriptMatrix,
+    "FormatSubtitles": FormatSubtitles
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "ExtractAudioFromVideo": "Extract Audio from Video URL",
-    "GenerateTranscriptMatrix": "Generate Transcript Matrix"
+    "GenerateTranscriptMatrix": "Generate Transcript Matrix",
+    "FormatSubtitles": "Format Subtitles"
 }
