@@ -371,15 +371,21 @@ class EmbedSubtitles:
         curr_tmp_output_dir = f"{TMP_OUTPUT_DIR}/{file_name}"
         os.makedirs(curr_tmp_output_dir, exist_ok=True)
         video_ext = "mp4"
+        
+        # Kiểm tra xem video_quality_key có hợp lệ không
+        if video_quality_key not in video_quality_map:
+            self.logger.error(f'Invalid video quality key: {video_quality_key}. Available keys: {list(video_quality_map.keys())}')
+            return None  # Hoặc trả về giá trị nào đó phù hợp
+        
         output_video_path = f"{curr_tmp_output_dir}/{file_name[:-16]}_{generate_current_time_suffix()}.{video_ext}"
-
+    
         crf = video_quality_map[video_quality_key]
         fonts_dict = json_read(FONTS_JSON_PATH)
-
+    
         font_lang = "english_fonts"
         font_file_name = fonts_dict[font_lang][eng_font]
         font_path = f'{FONTS_DIR}/{font_lang}/{font_file_name}'
-
+    
         self.logger.info(f'Using font: {eng_font} from path: {font_path}')
         
         ffmpeg_cmd = [
@@ -393,16 +399,16 @@ class EmbedSubtitles:
             '-y',                      # Overwrite output files without asking
             output_video_path         # Output video file
         ]
-
+    
         # Run ffmpeg command
         subprocess.run(ffmpeg_cmd)
-
+    
         # Upload video to Google Drive
         video_url = self.upload_to_google_drive(output_video_path)
         end_time = time.time()
         elapsed_time = int(end_time - start_time)
         self.logger.info(f'Time taken to complete embedding: {elapsed_time} seconds')
-
+    
         self.logger.info('Subtitles were successfully embedded into the input video')
         return video_url
 
