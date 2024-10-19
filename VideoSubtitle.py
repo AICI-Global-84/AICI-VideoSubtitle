@@ -179,9 +179,15 @@ class FormatSubtitles:
     CATEGORY = "Subtitles Processing"
 
     def format_subtitles(self, file_name, is_upper=False, word_options_key="default"):
+        os.makedirs(curr_json_dir, exist_ok=True)
+        os.makedirs(curr_subtitles_dir, exist_ok=True)
+     
         self.logger.info(f'Formatting subtitles for file: {file_name}')
         curr_json_dir = f'{JSON_DIR}/{file_name}'
         transcript_json_name = f'{file_name}_transcript.json'
+        if not os.path.exists(transcript_json_path):
+           self.logger.error(f'Transcript JSON not found: {transcript_json_path}')
+           return ("", "")  # Trả về tuple rỗng nếu không tìm thấy tệp
         transcript_json_path = f'{curr_json_dir}/{transcript_json_name}'
 
         # Convert JSON transcript to transcript matrix
