@@ -139,21 +139,18 @@ class GenerateTranscriptMatrix:
         # Clean the audio file name to create valid JSON file name
         clean_audio_file_name = re.sub(r'[<>:"/\\|?*=\&]', '_', audio_file_name)
         transcript_matrix_json_name = f'{clean_audio_file_name}_transcript.json'
-        transcript_matrix_json_path = os.path.join(JSON_DIR, transcript_matrix_json_name)  # Using os.path.join for safety
+        transcript_matrix_json_path = os.path.join(JSON_DIR, transcript_matrix_json_name)
+        
+        # Ghi file JSON
         json_write(transcript_matrix_json_path, transcript_matrix_2d_list)
 
-        lines = []
-        for i in range(len(transcript_matrix)):
-            line = " | ".join(word_instance.word for word_instance in transcript_matrix[i])
-            lines.append(line)
-        transcript_text = "\n".join(lines)
-
-        transcript_text_file_name = f'{clean_audio_file_name}_tt.txt'  # Update to match cleaned name
-        transcript_text_file_path = os.path.join(JSON_DIR, transcript_text_file_name)  # Save directly to JSON_DIR
+        # Tạo transcript text file
+        transcript_text_file_name = f'{clean_audio_file_name}_tt.txt'
+        transcript_text_file_path = os.path.join(JSON_DIR, transcript_text_file_name)
         write_text_file(transcript_text_file_path, transcript_text)
 
-        return (transcript_text_file_name,)
-
+        return (transcript_text_file_name, transcript_matrix_json_name)  # Trả về cả 2 tên file
+     
 
 class FormatSubtitles:
     def __init__(self):
@@ -174,12 +171,16 @@ class FormatSubtitles:
     FUNCTION = "format_subtitles"
     CATEGORY = "Subtitle Processing"
 
-    def format_subtitles(self, transcript_file_name, is_upper=False, word_options_key="default"):
+    def format_subtitles(self, transcript_file_name, transcript_json_name, is_upper=False, word_options_key="default"):
         self.logger.info(f'Formatting subtitles for transcript: {transcript_file_name}')
+        
+        # Tạo đường dẫn đầy đủ đến file JSON
+        transcript_json_path = os.path.join(JSON_DIR, transcript_json_name)  # Sửa lại ở đây
 
-        # Clean transcript file name to create valid path
-        clean_transcript_file_name = re.sub(r'[<>:"/\\|?*=\&]', '_', transcript_file_name)
-        transcript_json_path = os.path.join(JSON_DIR, f'{clean_transcript_file_name}_transcript.json')  # Using os.path.join
+        # Thêm kiểm tra để đảm bảo file JSON tồn tại trước khi tiếp tục
+        if not os.path.exists(transcript_json_path):
+            self.logger.error(f"Transcript JSON file not found: {transcript_json_path}")
+            return ("", "")  # Trả về tuple rỗng nếu không tìm thấy file JSON
 
         # Function to read JSON file and convert to transcript matrix
         def transcript_json_to_transcript_matrix(transcript_json_path):
