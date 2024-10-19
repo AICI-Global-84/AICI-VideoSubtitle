@@ -387,7 +387,7 @@ NODE_CLASS_MAPPINGS = {
     "ExtractAudioFromVideo": ExtractAudioFromVideo,
     "GenerateTranscriptMatrix": GenerateTranscriptMatrix,
     "FormatSubtitles": FormatSubtitles,
-    "EmbedSubtitles": EmbedSubtitles,
+    "EmbedSubtitles": EmbedSubtitles
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
