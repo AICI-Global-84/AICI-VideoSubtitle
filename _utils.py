@@ -83,7 +83,7 @@ def write_text_file(file_path, text):
         file.write(text)
 
 config = json_read(config_path)
-word_options_json_path = config['WORD_OPTIONS_JSON_PATH']
+word_options_json_path = os.path.join(base_dir, config['WORD_OPTIONS_JSON_PATH'])
 
 def get_video_files_from_dir(dir):
     # List files in the directory
