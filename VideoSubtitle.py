@@ -88,20 +88,19 @@ class GenerateTranscriptMatrix:
             },
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("transcript_text_file_name",)
+    RETURN_TYPES = ("STRING", "STRING")  # Cập nhật để có 2 output
+    RETURN_NAMES = ("transcript_text_file_name", "transcript_matrix_json_name")  # Tên cho hai output
     FUNCTION = "generate_transcript"
     CATEGORY = "Audio Processing"
 
     def generate_transcript(self, audio_file_name, translate_to_english=False):
         self.logger.info(f'Processing audio file: {audio_file_name}')
         
-        curr_audio_dir = f'{AUDIO_DIR}/{audio_file_name}'
         audio_file_path = os.path.join(AUDIO_DIR, audio_file_name)
 
         if not os.path.exists(audio_file_path):
             self.logger.error(f"Audio file not found: {audio_file_path}")
-            return ("",)  # Return empty tuple if file doesn't exist
+            return ("", "")  # Trả về hai giá trị rỗng nếu không tìm thấy file
     
         model_name = "large-v2"
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -114,8 +113,8 @@ class GenerateTranscriptMatrix:
             result = model.transcribe(audio_file_path, task=task, word_timestamps=True)
         except Exception as e:
             self.logger.exception(f"Failed to transcribe audio: {e}")
-            return ("",)  # Return empty tuple on transcription failure
-     
+            return ("", "")  # Trả về hai giá trị rỗng nếu có lỗi
+    
         segments = result['segments']
         transcript_matrix = []
 
@@ -136,15 +135,13 @@ class GenerateTranscriptMatrix:
             for row in transcript_matrix
         ]
 
-        # Clean the audio file name to create valid JSON file name
         clean_audio_file_name = re.sub(r'[<>:"/\\|?*=\&]', '_', audio_file_name)
         transcript_matrix_json_name = f'{clean_audio_file_name}_transcript.json'
         transcript_matrix_json_path = os.path.join(JSON_DIR, transcript_matrix_json_name)
         
-        # Ghi file JSON
         json_write(transcript_matrix_json_path, transcript_matrix_2d_list)
 
-        # Tạo transcript text file
+        # Tạo file văn bản transcript
         lines = []
         for i in range(len(transcript_matrix)):
             line = " | ".join(word_instance.word for word_instance in transcript_matrix[i])
@@ -155,8 +152,7 @@ class GenerateTranscriptMatrix:
         transcript_text_file_path = os.path.join(JSON_DIR, transcript_text_file_name)
         write_text_file(transcript_text_file_path, transcript_text)
 
-        return (transcript_text_file_name, transcript_matrix_json_name)  # Trả về cả 2 tên file
-
+        return (transcript_text_file_name, transcript_matrix_json_name)  # Trả về cả hai tên file
      
 
 class FormatSubtitles:
@@ -168,6 +164,7 @@ class FormatSubtitles:
         return {
             "required": {
                 "transcript_file_name": ("STRING", {"tooltip": "Tên file transcript."}),
+                "transcript_json_name": ("STRING", {"tooltip": "Tên file JSON transcript."}),  # Thêm tham số này
                 "is_upper": ("BOOLEAN", {"default": False, "tooltip": "Chọn để viết hoa tất cả các từ."}),
                 "word_options_key": ("STRING", {"default": "default", "tooltip": "Key cho tùy chọn từ ngữ."}),
             },
@@ -182,7 +179,7 @@ class FormatSubtitles:
         self.logger.info(f'Formatting subtitles for transcript: {transcript_file_name}')
         
         # Tạo đường dẫn đầy đủ đến file JSON
-        transcript_json_path = os.path.join(JSON_DIR, transcript_json_name)  # Sửa lại ở đây
+        transcript_json_path = os.path.join(JSON_DIR, transcript_json_name)
 
         # Thêm kiểm tra để đảm bảo file JSON tồn tại trước khi tiếp tục
         if not os.path.exists(transcript_json_path):
