@@ -138,13 +138,11 @@ class GenerateTranscriptMatrix:
             for row in transcript_matrix
         ]
 
-        curr_json_dir = f'{JSON_DIR}/{audio_file_name}'
-        os.makedirs(curr_json_dir, exist_ok=True)
-        # Clean the audio_file_name to make it a valid filename
         clean_audio_file_name = re.sub(r'[<>:"/\\|?*]', '_', audio_file_name)
         transcript_matrix_json_name = f'{clean_audio_file_name}_transcript.json'
-        transcript_matrix_json_path = f'{curr_json_dir}/{transcript_matrix_json_name}'
+        transcript_matrix_json_path = f'{JSON_DIR}/{transcript_matrix_json_name}'
         json_write(transcript_matrix_json_path, transcript_matrix_2d_list)
+
 
         lines = []
         for i in range(len(transcript_matrix)):
@@ -153,8 +151,9 @@ class GenerateTranscriptMatrix:
         transcript_text = "\n".join(lines)
 
         transcript_text_file_name = f'{audio_file_name}_tt.txt'
-        transcript_text_file_path = f'{curr_json_dir}/{transcript_text_file_name}'
+        transcript_text_file_path = f'{JSON_DIR}/{transcript_text_file_name}'  # Lưu trực tiếp vào JSON_DIR
         write_text_file(transcript_text_file_path, transcript_text)
+
 
         return (transcript_text_file_name,)
 
