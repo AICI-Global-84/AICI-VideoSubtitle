@@ -5,6 +5,7 @@ import time
 import requests
 import torch
 import whisper
+import re
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
@@ -139,7 +140,9 @@ class GenerateTranscriptMatrix:
 
         curr_json_dir = f'{JSON_DIR}/{audio_file_name}'
         os.makedirs(curr_json_dir, exist_ok=True)
-        transcript_matrix_json_name = f'{audio_file_name}_transcript.json'
+        # Clean the audio_file_name to make it a valid filename
+        clean_audio_file_name = re.sub(r'[<>:"/\\|?*]', '_', audio_file_name)
+        transcript_matrix_json_name = f'{clean_audio_file_name}_transcript.json'
         transcript_matrix_json_path = f'{curr_json_dir}/{transcript_matrix_json_name}'
         json_write(transcript_matrix_json_path, transcript_matrix_2d_list)
 
