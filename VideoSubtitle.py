@@ -43,32 +43,35 @@ class ExtractAudioFromVideo:
             return None
 
     def extract_audio(self, video_url):
-        """Trích xuất âm thanh từ video và lưu vào thư mục chỉ định."""
-        video_file_path = self.download_video(video_url)
-        if not video_file_path:
-             return ("",)
-    
-        file_name_with_ext = os.path.basename(video_file_path)
-        file_name = generate_unique_file_name(file_name_with_ext.split('.')[0])
-    
-        curr_audio_dir = f'{AUDIO_DIR}/{file_name}'
-        os.makedirs(curr_audio_dir, exist_ok=True)
-        audio_file_name = f'{file_name}.wav'
-        audio_file_path = os.path.join(curr_audio_dir, audio_file_name)  # Sử dụng os.path.join
-    
-        try:
-            video_clip = VideoFileClip(video_file_path)
-            audio_clip = video_clip.audio
-            audio_clip.write_audiofile(audio_file_path)
-            video_clip.close()
-            self.logger.info(f"Audio extracted successfully for {video_file_path}")
-            print(f"Audio extracted successfully for {video_file_path}")
-        except Exception as e:
-            self.logger.exception(f"An error occurred: {e}")
-            print("An error occurred:", e)
-    
-        return (audio_file_path,)  # Trả về đường dẫn đầy đủ đến file âm thanh
+    """Trích xuất âm thanh từ video và lưu vào thư mục chỉ định."""
+    video_file_path = self.download_video(video_url)
+    if not video_file_path:
+        return ("",)
 
+    # Lấy tên file từ đường dẫn video
+    file_name_with_ext = os.path.basename(video_file_path)
+    file_name = generate_unique_file_name(file_name_with_ext.split('.')[0])
+
+    # Tạo thư mục cho âm thanh nếu chưa tồn tại
+    curr_audio_dir = AUDIO_DIR  # Chỉ cần dùng AUDIO_DIR mà không cần tên file
+    os.makedirs(curr_audio_dir, exist_ok=True)
+    
+    # Tạo tên file âm thanh
+    audio_file_name = f'{file_name}.wav'
+    audio_file_path = os.path.join(curr_audio_dir, audio_file_name)  # Đường dẫn đầy đủ tới file âm thanh
+
+    try:
+        video_clip = VideoFileClip(video_file_path)
+        audio_clip = video_clip.audio
+        audio_clip.write_audiofile(audio_file_path)
+        video_clip.close()
+        self.logger.info(f"Audio extracted successfully for {video_file_path}")
+        print(f"Audio extracted successfully for {video_file_path}")
+    except Exception as e:
+        self.logger.exception(f"An error occurred: {e}")
+        print("An error occurred:", e)
+
+    return (audio_file_name,)  # Trả về chỉ tên file âm thanh, không cần đường dẫn đầy đủ
 
 
 class GenerateTranscriptMatrix:
@@ -94,7 +97,7 @@ class GenerateTranscriptMatrix:
         
         # Tạo đường dẫn đầy đủ đến file âm thanh
         curr_audio_dir = f'{AUDIO_DIR}/{audio_file_name}'
-        audio_file_path = f'{curr_audio_dir}/{audio_file_name}.wav'
+        audio_file_path = os.path.join(AUDIO_DIR, audio_file_name)  # Bây giờ đường dẫn này sẽ đúng
         
         # Kiểm tra xem file có tồn tại không
         if not os.path.exists(audio_file_path):
