@@ -46,16 +46,16 @@ class ExtractAudioFromVideo:
         """Trích xuất âm thanh từ video và lưu vào thư mục chỉ định."""
         video_file_path = self.download_video(video_url)
         if not video_file_path:
-            return ("",)  # Trả về tuple rỗng nếu không tải video thành công
-
+             return ("",)
+    
         file_name_with_ext = os.path.basename(video_file_path)
         file_name = generate_unique_file_name(file_name_with_ext.split('.')[0])
-
+    
         curr_audio_dir = f'{AUDIO_DIR}/{file_name}'
         os.makedirs(curr_audio_dir, exist_ok=True)
         audio_file_name = f'{file_name}.wav'
-        audio_file_path = f'{curr_audio_dir}/{audio_file_name}'
-
+        audio_file_path = os.path.join(curr_audio_dir, audio_file_name)  # Sử dụng os.path.join
+    
         try:
             video_clip = VideoFileClip(video_file_path)
             audio_clip = video_clip.audio
@@ -66,8 +66,9 @@ class ExtractAudioFromVideo:
         except Exception as e:
             self.logger.exception(f"An error occurred: {e}")
             print("An error occurred:", e)
+    
+        return (audio_file_path,)  # Trả về đường dẫn đầy đủ đến file âm thanh
 
-        return (audio_file_name,)
 
 
 class GenerateTranscriptMatrix:
@@ -90,20 +91,29 @@ class GenerateTranscriptMatrix:
 
     def generate_transcript(self, audio_file_name, translate_to_english=False):
         self.logger.info(f'Processing audio file: {audio_file_name}')
-        print(f'Processing audio file: {audio_file_name}')
-
+        
+        # Tạo đường dẫn đầy đủ đến file âm thanh
         curr_audio_dir = f'{AUDIO_DIR}/{audio_file_name}'
         audio_file_path = f'{curr_audio_dir}/{audio_file_name}.wav'
-
+        
+        # Kiểm tra xem file có tồn tại không
+        if not os.path.exists(audio_file_path):
+            self.logger.error(f"Audio file not found: {audio_file_path}")
+            return ("",)  # Trả về tuple rỗng nếu file không tồn tại
+    
         model_name = "large-v2"
         device = "cuda" if torch.cuda.is_available() else "cpu"
         model = whisper.load_model(model_name, device)
-
+    
         task = 'transcribe' if not translate_to_english else 'translate'
         self.logger.info(f'Task: {task} {"to English" if translate_to_english else "to source language"}')
-
-        result = model.transcribe(audio_file_path, task=task, word_timestamps=True)
-
+    
+        try:
+            result = model.transcribe(audio_file_path, task=task, word_timestamps=True)
+        except Exception as e:
+            self.logger.exception(f"Failed to transcribe audio: {e}")
+            return ("",)  # Trả về tuple rỗng nếu có lỗi trong quá trình transcribe
+     
         segments = result['segments']
         transcript_matrix = []
 
