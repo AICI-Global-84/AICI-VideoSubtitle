@@ -83,7 +83,7 @@ class VideoSubtitle:
         # Video processing and subtitle rendering
         video = VideoFileClip(video_path)
         # Đường dẫn tới thư mục chứa font
-        font_path = f"/content/ComfyUI/custom_nodes/AICI-VideoSubtitle/resources/fonts/english_fonts/{font_name}.ttf"
+        font_path = f"/content/ComfyUI/custom_nodes/AICI-VideoSubtitle/resources/fonts/english_fonts/{fontname}.ttf"
         
         # Đảm bảo rằng các màu sắc đang được định dạng đúng
         primary_color = primary_color if primary_color.startswith("#") else "#" + primary_color[4:]
