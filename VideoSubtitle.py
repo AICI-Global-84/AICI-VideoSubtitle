@@ -179,34 +179,38 @@ class FormatSubtitles:
     CATEGORY = "Subtitles Processing"
 
     def format_subtitles(self, file_name, is_upper=False, word_options_key="default"):
+        # Khởi tạo đường dẫn cho thư mục JSON và thư mục phụ đề
+        curr_json_dir = f'{JSON_DIR}/{file_name}'
+        curr_subtitles_dir = f'{SUBTITLES_DIR}/{file_name}'
+    
+        # Tạo thư mục nếu chưa tồn tại
         os.makedirs(curr_json_dir, exist_ok=True)
         os.makedirs(curr_subtitles_dir, exist_ok=True)
-     
+    
         self.logger.info(f'Formatting subtitles for file: {file_name}')
-        curr_json_dir = f'{JSON_DIR}/{file_name}'
         transcript_json_name = f'{file_name}_transcript.json'
+        transcript_json_path = f'{curr_json_dir}/{transcript_json_name}'  # Chuyển dòng này lên đây
+    
+        # Kiểm tra xem tệp JSON có tồn tại không
         if not os.path.exists(transcript_json_path):
-           self.logger.error(f'Transcript JSON not found: {transcript_json_path}')
-           return ("", "")  # Trả về tuple rỗng nếu không tìm thấy tệp
-        transcript_json_path = f'{curr_json_dir}/{transcript_json_name}'
-
-        # Convert JSON transcript to transcript matrix
+            self.logger.error(f'Transcript JSON not found: {transcript_json_path}')
+            return ("", "")  # Trả về tuple rỗng nếu không tìm thấy tệp
+    
+        # Chuyển đổi JSON transcript thành ma trận transcript
         transcript_matrix = self.transcript_json_to_transcript_matrix(transcript_json_path)
-
-        # Prepare subtitles based on the transcript matrix
+    
+        # Chuẩn bị phụ đề dựa trên ma trận transcript
         vtt_text, srt_text = self.convert_transcript_to_subtitles(transcript_matrix, file_name, is_upper, word_options_key)
-
-        # Save subtitles to files
-        curr_subtitles_dir = f'{SUBTITLES_DIR}/{file_name}'
-        os.makedirs(curr_subtitles_dir, exist_ok=True)
-
+    
+        # Lưu phụ đề vào tệp
         vtt_subtitle_path = f'{curr_subtitles_dir}/{file_name}.vtt'
         srt_subtitle_path = f'{curr_subtitles_dir}/{file_name}.srt'
         write_text_file(vtt_subtitle_path, vtt_text)
         write_text_file(srt_subtitle_path, srt_text)
-
+    
         self.logger.info(f'Generated subtitles at: {vtt_subtitle_path} and {srt_subtitle_path}')
         return vtt_subtitle_path, srt_subtitle_path
+
 
     def dict_to_timestamped_word(self, d):
         return Timestamped_word(
