@@ -325,18 +325,25 @@ class EmbedSubtitles:
             raise
 
     def upload_to_google_drive(self, video_path):
-        """Upload video to Google Drive and return the shared URL."""
+        """Upload video to Google Drive và trả về URL chia sẻ."""
         try:
             file_metadata = {'name': os.path.basename(video_path), 'parents': ['1fZyeDT_eW6ozYXhqi_qLVy-Xnu5JD67a']}
             media = MediaFileUpload(video_path, mimetype='video/mp4')
             file = self.drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
 
             file_id = file.get('id')
-            self.drive_service.permissions().create(fileId=file_id, body={'type': 'anyone', 'role': 'reader'}).execute()
-            return f"https://drive.google.com/uc?id={file_id}"
+            if file_id:
+                self.drive_service.permissions().create(fileId=file_id, body={'type': 'anyone', 'role': 'reader'}).execute()
+                video_url = f"https://drive.google.com/uc?id={file_id}"
+                self.logger.info(f"Video URL: {video_url}")
+                return video_url
+            else:
+                self.logger.error("Không thể lấy ID của file video từ Google Drive")
+                return ""
         except Exception as e:
-            self.logger.error(f"An error occurred while uploading to Google Drive: {e}")
+            self.logger.error(f"Lỗi khi upload video lên Google Drive: {str(e)}")
             return ""
+
 
     def embed_subtitles(self, input_video_path, vtt_subtitle_path, srt_subtitle_path, video_quality_key, eng_font):
         try:
@@ -412,7 +419,7 @@ class EmbedSubtitles:
                     end_time = time.time()
                     elapsed_time = int(end_time - start_time)
                     self.logger.info(f'Time taken to complete embedding: {elapsed_time} seconds')
-                    self.logger.info('Subtitles were successfully embedded into the input video')
+                    self.logger.info(f'Subtitles were successfully embedded into the input video. Video URL: {video_url}')
                     return video_url
                 else:
                     self.logger.error("Failed to upload video to Google Drive")
@@ -420,6 +427,7 @@ class EmbedSubtitles:
             else:
                 self.logger.error(f"Output video file not found: {output_video_path}")
                 return ""
+
 
         except Exception as e:
             self.logger.error(f"An error occurred during subtitle embedding: {str(e)}")
