@@ -322,7 +322,7 @@ class EmbedSubtitles:
             self.logger.info(f'Embedding subtitles into video: {input_video_path}')
             
             curr_subtitles_dir = os.path.abspath(f"{SUBTITLES_DIR}/{file_name}")
-            subtitles_path = os.path.abspath(f"{curr_subtitles_dir}/{file_name}.vtt")  # Đảm bảo đường dẫn phụ đề đúng
+            subtitles_path = os.path.abspath(f"{curr_subtitles_dir}/{file_name}.vtt")
             curr_tmp_output_dir = os.path.abspath(f"{TMP_OUTPUT_DIR}/{file_name}")
             os.makedirs(curr_tmp_output_dir, exist_ok=True)
             video_ext = "mp4"
@@ -352,22 +352,26 @@ class EmbedSubtitles:
             font_file_name = fonts_dict[font_lang][eng_font]
             font_path = os.path.abspath(f'{FONTS_DIR}/{font_lang}/{font_file_name}')
     
-            self.logger.info(f'Using font: {eng_font} from path: {font_path}')
-            
+            # In ra các đường dẫn để kiểm tra
+            self.logger.info(f'Subtitles path: {subtitles_path}')
+            self.logger.info(f'Input video path: {input_video_path}')
+            self.logger.info(f'Output video path: {output_video_path}')
+            self.logger.info(f'Font path: {font_path}')
+    
             # Xác định lệnh ffmpeg
             ffmpeg_cmd = [
                 'ffmpeg',
-                '-i', input_video_path,  # Đường dẫn video đầu vào
-                "-vf", f"subtitles={subtitles_path}:fontsdir={font_path}:force_style='Fontname={eng_font}'",  # Đường dẫn phụ đề
+                '-i', input_video_path,
+                "-vf", f"subtitles={subtitles_path}:fontsdir={font_path}:force_style='Fontname={eng_font}'",
                 '-c:a', 'copy',
                 '-c:v', 'libx264',
                 '-preset', 'ultrafast',
                 '-crf', f'{crf}',
                 '-y',
-                output_video_path  # Đường dẫn video đầu ra
+                output_video_path
             ]
             
-            self.logger.info(f'Running ffmpeg command: {" ".join(ffmpeg_cmd)}')  # Ghi lại lệnh ffmpeg đã chạy
+            self.logger.info(f'Running ffmpeg command: {" ".join(ffmpeg_cmd)}')
             subprocess.run(ffmpeg_cmd, check=True)
             
             if os.path.exists(output_video_path):
@@ -388,6 +392,7 @@ class EmbedSubtitles:
         except Exception as e:
             self.logger.error(f"An error occurred during subtitle embedding: {str(e)}")
             return ""
+
 
 
 # A dictionary that contains all nodes you want to export with their names
