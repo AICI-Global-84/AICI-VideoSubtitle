@@ -51,12 +51,14 @@ class ExtractAudioFromVideo:
     
         # Lấy tên file từ đường dẫn video
         file_name_with_ext = os.path.basename(video_file_path)
-        file_name = generate_unique_file_name(file_name_with_ext.split('.')[0])
+        # Giữ lại một phần tên file để tạo tên ngắn hơn, ví dụ: chỉ lấy 10 ký tự đầu tiên
+        short_file_name = file_name_with_ext.split('.')[0][:10]
+        file_name = generate_unique_file_name(short_file_name)
     
         # Tạo thư mục cho âm thanh nếu chưa tồn tại
         curr_audio_dir = AUDIO_DIR  # Chỉ cần dùng AUDIO_DIR mà không cần tên file
         os.makedirs(curr_audio_dir, exist_ok=True)
-        
+    
         # Tạo tên file âm thanh
         audio_file_name = f'{file_name}.wav'
         audio_file_path = os.path.join(curr_audio_dir, audio_file_name)  # Đường dẫn đầy đủ tới file âm thanh
