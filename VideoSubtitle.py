@@ -421,23 +421,30 @@ class EmbedSubtitles:
             # Cài đặt font nếu cần thiết
             self.install_font_if_needed(font_file_name, font_path)
 
-            # Định dạng phụ đề
-            force_style = f"Fontname={eng_font},Fontsize={fontsize},FontWeight={'Bold' if bold == 'enable' else 'Normal'},Italic={'1' if italic == 'enable' else '0'},Underline={'1' if underline == 'enable' else '0'}"
+            # Đặt lại các giá trị cho force_style
+            force_style = (
+                f"Fontname={eng_font},"
+                f"Fontsize={int(fontsize)},"
+                f"FontWeight={'Bold' if bold == 'enable' else 'Normal'},"
+                f"Italic={'1' if italic == 'enable' else '0'},"
+                f"Underline={'1' if underline == 'enable' else '0'}"
+            )
+            
+            # Đặt lại vị trí cho subtitle
             position_style = f"x={left_margin}:y={top_margin}"
             
-            # Lệnh ffmpeg
+            # Xây dựng lại lệnh ffmpeg
             ffmpeg_cmd = [
                 'ffmpeg',
                 '-i', input_video_path,
-                '-vf', f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style={force_style},x={left_margin}:y={top_margin}",
+                '-vf', f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style={force_style}",
                 '-c:a', 'copy',
                 '-c:v', 'libx264',
                 '-preset', 'ultrafast',
-                '-crf', '30',  # Điều chỉnh lại theo yêu cầu
+                '-crf', '30',  
                 '-y',
                 output_video_path
             ]
-         
             subprocess.run(ffmpeg_cmd, check=True)
 
             # Kiểm tra xem video đã nhúng phụ đề có tồn tại không
