@@ -359,10 +359,10 @@ class EmbedSubtitles:
             # Kiểm tra video quality key hợp lệ
             if video_quality_key not in video_quality_map:
                 self.logger.error(f'Invalid video quality key: {video_quality_key}. Available keys: {list(video_quality_map.keys())}')
-                return ""
+                return ("",)
 
             # Nếu input_video_path là URL, tải video về
-            if input_video_path.startswith('http://') or input_video_path.startswith('https://'):
+            if input_video_path.startswith('http://') hoặc input_video_path.startswith('https://'):
                 response = requests.get(input_video_path)
                 input_video_path = os.path.abspath(f"{curr_tmp_output_dir}/downloaded_video.mp4")
                 with open(input_video_path, 'wb') as f:
@@ -372,12 +372,12 @@ class EmbedSubtitles:
                 input_video_path = os.path.abspath(input_video_path)
                 if not os.path.exists(input_video_path):
                     self.logger.error(f'Input video path does not exist: {input_video_path}')
-                    return ""
+                    return ("",)
 
             # Kiểm tra sự tồn tại của file phụ đề
-            if not os.path.exists(vtt_subtitle_path) or not os.path.exists(srt_subtitle_path):
+            if not os.path.exists(vtt_subtitle_path) hoặc not os.path.exists(srt_subtitle_path):
                 self.logger.error("Subtitle file not found.")
-                return ""
+                return ("",)
 
             # Tạo tên file đầu ra cho video đã nhúng phụ đề
             output_video_name = generate_unique_file_name("output_video") + ".mp4"
@@ -420,18 +420,18 @@ class EmbedSubtitles:
                     elapsed_time = int(end_time - start_time)
                     self.logger.info(f'Time taken to complete embedding: {elapsed_time} seconds')
                     self.logger.info(f'Subtitles were successfully embedded into the input video. Video URL: {video_url}')
-                    return video_url
+                    return (str(video_url),)  # Trả về URL dưới dạng tuple
                 else:
                     self.logger.error("Failed to upload video to Google Drive")
-                    return ""
+                    return ("",)
             else:
                 self.logger.error(f"Output video file not found: {output_video_path}")
-                return ""
-
+                return ("",)
 
         except Exception as e:
             self.logger.error(f"An error occurred during subtitle embedding: {str(e)}")
-            return ""
+            return ("",)
+
 
 
 # A dictionary that contains all nodes you want to export with their names
