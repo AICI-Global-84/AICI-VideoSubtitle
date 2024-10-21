@@ -324,9 +324,9 @@ class EmbedSubtitles:
             output_dir = '/tmp/gradio/output'
             os.makedirs(output_dir, exist_ok=True)
             
-            subtitles_path = os.path.join(subtitles_dir, f"{file_name}.vtt")
-            if not os.path.exists(subtitles_path):
-                self.logger.error(f"Subtitles file not found: {subtitles_path}")
+            subtitles_path = os.path.join(subtitles_dir, file_name)  # Không thêm .vtt ở đây
+            if not os.path.exists(f"{subtitles_path}.vtt"):
+                self.logger.error(f"Subtitles file not found: {subtitles_path}.vtt")
                 return ""
 
             video_ext = "mp4"
