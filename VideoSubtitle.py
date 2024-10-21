@@ -371,7 +371,7 @@ class EmbedSubtitles:
             ffmpeg_cmd = [
                 'ffmpeg',
                 '-i', input_video_path,
-                "-vf", f"subtitles={srt_subtitle_path}:fontsdir={font_path}:force_style='Fontname={eng_font}'",  # Nhúng phụ đề SRT với font chữ
+                "-vf", f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style='Fontname={eng_font}'",  # Nhúng phụ đề SRT với font chữ
                 '-c:a', 'copy',
                 '-c:v', 'libx264',
                 '-preset', 'ultrafast',
