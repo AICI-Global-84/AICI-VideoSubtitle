@@ -363,7 +363,7 @@ class EmbedSubtitles:
             fonts_dict = json_read(FONTS_JSON_PATH)
             font_lang = "english_fonts"
             font_file_name = fonts_dict[font_lang][eng_font]
-            font_path = os.path.abspath(f'{FONTS_DIR}/{font_lang}/{font_file_name}')
+            font_path = f'{FONTS_DIR}/{font_lang}/{font_file_name}'
 
             self.logger.info(f'Using font: {eng_font} from path: {font_path}')
             
