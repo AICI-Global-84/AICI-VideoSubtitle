@@ -296,14 +296,31 @@ class EmbedSubtitles:
                 "srt_subtitle_path": ("STRING", {"tooltip": "Đường dẫn tới file SRT phụ đề."}),
                 "video_quality_key": ("STRING", {"tooltip": "Khóa chất lượng video."}),
                 "eng_font": ("STRING", {"tooltip": "Tên font chữ tiếng Anh."}),
-                "fontsize": ("FLOAT", {"tooltip": "Kích thước font chữ."}),
-                "bold": ("BOOL", {"default": False, "tooltip": "Bật/Tắt chữ đậm."}),
-                "italic": ("BOOL", {"default": False, "tooltip": "Bật/Tắt chữ nghiêng."}),
-                "underline": ("BOOL", {"default": False, "tooltip": "Bật/Tắt gạch chân."}),
-                "left_margin": ("INT", {"tooltip": "Khoảng cách từ lề trái."}),
-                "top_margin": ("INT", {"tooltip": "Khoảng cách từ lề trên."}),
+                "fontsize": ("FLOAT", {
+                    "default": 24.0,  # Giá trị mặc định cho kích thước font
+                    "min": 1.0,      # Kích thước tối thiểu
+                    "max": 100.0,    # Kích thước tối đa
+                    "step": 1.0,     # Bước tăng
+                    "display": "number"  # Hiển thị dưới dạng số
+                }),
+                "bold": (["disable", "enable"], {"default": "disable", "tooltip": "Bật/Tắt chữ đậm."}),
+                "italic": (["disable", "enable"], {"default": "disable", "tooltip": "Bật/Tắt chữ nghiêng."}),
+                "underline": (["disable", "enable"], {"default": "disable", "tooltip": "Bật/Tắt gạch chân."}),
+                "left_margin": ("INT", {
+                    "default": 10, 
+                    "min": 0, 
+                    "max": 1000, 
+                    "step": 1
+                }),
+                "top_margin": ("INT", {
+                    "default": 10, 
+                    "min": 0, 
+                    "max": 1000, 
+                    "step": 1
+                }),
             },
         }
+
 
 
     RETURN_TYPES = ("STRING",)
@@ -405,7 +422,7 @@ class EmbedSubtitles:
             self.install_font_if_needed(font_file_name, font_path)
 
             # Định dạng phụ đề
-            force_style = f"Fontname={eng_font},Fontsize={fontsize},FontWeight={'Bold' if bold else 'Normal'},Italic={'1' if italic else '0'},Underline={'1' if underline else '0'}"
+            force_style = f"Fontname={eng_font},Fontsize={fontsize},FontWeight={'Bold' if bold == 'enable' else 'Normal'},Italic={'1' if italic == 'enable' else '0'},Underline={'1' if underline == 'enable' else '0'}"
             position_style = f"x={left_margin}:y={top_margin}"
     
             # Nhúng phụ đề với các tùy chọn đã thêm
