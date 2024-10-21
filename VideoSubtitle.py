@@ -322,15 +322,15 @@ class EmbedSubtitles:
             self.logger.info(f'Embedding subtitles into video: {input_video_path}')
             
             curr_subtitles_dir = os.path.abspath(f"{SUBTITLES_DIR}/{file_name}")
-            subtitles_path = os.path.abspath(f"{curr_subtitles_dir}/{file_name}.vtt")  # Đảm bảo đường dẫn chính xác
+            subtitles_path = os.path.abspath(f"{curr_subtitles_dir}/{file_name}.vtt")  # Đảm bảo đường dẫn phụ đề đúng
             curr_tmp_output_dir = os.path.abspath(f"{TMP_OUTPUT_DIR}/{file_name}")
             os.makedirs(curr_tmp_output_dir, exist_ok=True)
             video_ext = "mp4"
-
+    
             if video_quality_key not in video_quality_map:
                 self.logger.error(f'Invalid video quality key: {video_quality_key}. Available keys: {list(video_quality_map.keys())}')
                 return ""
-
+    
             if input_video_path.startswith('http://') or input_video_path.startswith('https://'):
                 response = requests.get(input_video_path)
                 input_video_path = os.path.abspath(f"{curr_tmp_output_dir}/downloaded_video.mp4")
@@ -342,32 +342,34 @@ class EmbedSubtitles:
                 if not os.path.exists(input_video_path):
                     self.logger.error(f'Input video path does not exist: {input_video_path}')
                     return ""
-
+    
             output_video_path = os.path.abspath(f"{curr_tmp_output_dir}/{file_name[:-16]}_{generate_current_time_suffix()}.{video_ext}")
-        
+    
             crf = video_quality_map[video_quality_key]
             fonts_dict = json_read(FONTS_JSON_PATH)
-        
+    
             font_lang = "english_fonts"
             font_file_name = fonts_dict[font_lang][eng_font]
             font_path = os.path.abspath(f'{FONTS_DIR}/{font_lang}/{font_file_name}')
-        
+    
             self.logger.info(f'Using font: {eng_font} from path: {font_path}')
             
+            # Xác định lệnh ffmpeg
             ffmpeg_cmd = [
                 'ffmpeg',
-                '-i', input_video_path,
-                "-vf", f"subtitles={subtitles_path}:fontsdir={font_path}:force_style='Fontname={eng_font}'",
+                '-i', input_video_path,  # Đường dẫn video đầu vào
+                "-vf", f"subtitles={subtitles_path}:fontsdir={font_path}:force_style='Fontname={eng_font}'",  # Đường dẫn phụ đề
                 '-c:a', 'copy',
                 '-c:v', 'libx264',
                 '-preset', 'ultrafast',
                 '-crf', f'{crf}',
                 '-y',
-                output_video_path
+                output_video_path  # Đường dẫn video đầu ra
             ]
-        
+            
+            self.logger.info(f'Running ffmpeg command: {" ".join(ffmpeg_cmd)}')  # Ghi lại lệnh ffmpeg đã chạy
             subprocess.run(ffmpeg_cmd, check=True)
-        
+            
             if os.path.exists(output_video_path):
                 video_url = self.upload_to_google_drive(output_video_path)
                 if video_url:
@@ -382,10 +384,11 @@ class EmbedSubtitles:
             else:
                 self.logger.error(f"Output video file not found: {output_video_path}")
                 return ""
-
+    
         except Exception as e:
             self.logger.error(f"An error occurred during subtitle embedding: {str(e)}")
             return ""
+
 
 # A dictionary that contains all nodes you want to export with their names
 NODE_CLASS_MAPPINGS = {
