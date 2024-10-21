@@ -261,11 +261,11 @@ class FormatSubtitles:
         vtt_text = "\n".join(vtt_lines)
         srt_text = "\n".join(srt_lines)
 
-        curr_subtitles_dir = f'{SUBTITLES_DIR}/{transcript_file_name}'
+        curr_subtitles_dir = f'{SUBTITLES_DIR}/{os.path.splitext(transcript_file_name)[0]}'
         os.makedirs(curr_subtitles_dir, exist_ok=True)
 
-        vtt_subtitle_path = f'{curr_subtitles_dir}/{transcript_file_name}.vtt'
-        srt_subtitle_path = f'{curr_subtitles_dir}/{transcript_file_name}.srt'
+        vtt_subtitle_path = f'{curr_subtitles_dir}/{os.path.splitext(transcript_file_name)[0]}.vtt'
+        srt_subtitle_path = f'{curr_subtitles_dir}/{os.path.splitext(transcript_file_name)[0]}.srt'
         write_text_file(vtt_subtitle_path, vtt_text)
         write_text_file(srt_subtitle_path, srt_text)
 
