@@ -391,7 +391,6 @@ class EmbedSubtitles:
             self.logger.error(f"An error occurred during subtitle embedding: {str(e)}")
             return ""
 
-
 # A dictionary that contains all nodes you want to export with their names
 NODE_CLASS_MAPPINGS = {
     "ExtractAudioFromVideo": ExtractAudioFromVideo,
