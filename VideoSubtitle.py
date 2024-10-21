@@ -424,20 +424,20 @@ class EmbedSubtitles:
             # Định dạng phụ đề
             force_style = f"Fontname={eng_font},Fontsize={fontsize},FontWeight={'Bold' if bold == 'enable' else 'Normal'},Italic={'1' if italic == 'enable' else '0'},Underline={'1' if underline == 'enable' else '0'}"
             position_style = f"x={left_margin}:y={top_margin}"
-    
-            # Nhúng phụ đề với các tùy chọn đã thêm
+            
+            # Lệnh ffmpeg
             ffmpeg_cmd = [
                 'ffmpeg',
                 '-i', input_video_path,
-                "-vf", f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style='{force_style},{position_style}'",
+                '-vf', f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style={force_style},x={left_margin}:y={top_margin}",
                 '-c:a', 'copy',
                 '-c:v', 'libx264',
                 '-preset', 'ultrafast',
-                '-crf', f'{crf}',
+                '-crf', '30',  # Điều chỉnh lại theo yêu cầu
                 '-y',
                 output_video_path
             ]
-    
+         
             subprocess.run(ffmpeg_cmd, check=True)
 
             # Kiểm tra xem video đã nhúng phụ đề có tồn tại không
