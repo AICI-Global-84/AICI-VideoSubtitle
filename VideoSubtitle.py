@@ -296,8 +296,15 @@ class EmbedSubtitles:
                 "srt_subtitle_path": ("STRING", {"tooltip": "Đường dẫn tới file SRT phụ đề."}),
                 "video_quality_key": ("STRING", {"tooltip": "Khóa chất lượng video."}),
                 "eng_font": ("STRING", {"tooltip": "Tên font chữ tiếng Anh."}),
+                "fontsize": ("FLOAT", {"tooltip": "Kích thước font chữ."}),
+                "bold": ("BOOL", {"default": False, "tooltip": "Bật/Tắt chữ đậm."}),
+                "italic": ("BOOL", {"default": False, "tooltip": "Bật/Tắt chữ nghiêng."}),
+                "underline": ("BOOL", {"default": False, "tooltip": "Bật/Tắt gạch chân."}),
+                "left_margin": ("INT", {"tooltip": "Khoảng cách từ lề trái."}),
+                "top_margin": ("INT", {"tooltip": "Khoảng cách từ lề trên."}),
             },
         }
+
 
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("video_url",)
@@ -345,10 +352,10 @@ class EmbedSubtitles:
             return ""
 
 
-    def embed_subtitles(self, input_video_path, vtt_subtitle_path, srt_subtitle_path, video_quality_key, eng_font):
+    def embed_subtitles(self, input_video_path, vtt_subtitle_path, srt_subtitle_path, video_quality_key, eng_font, fontsize, bold, italic, underline, left_margin, top_margin):
         try:
             start_time = time.time()
-
+    
             self.logger.info(f'Embedding subtitles into video: {input_video_path}')
 
             # Tạo thư mục tạm cho output video
@@ -397,19 +404,23 @@ class EmbedSubtitles:
             # Cài đặt font nếu cần thiết
             self.install_font_if_needed(font_file_name, font_path)
 
-            # Nhúng phụ đề SRT vào video sử dụng ffmpeg
+            # Định dạng phụ đề
+            force_style = f"Fontname={eng_font},Fontsize={fontsize},FontWeight={'Bold' if bold else 'Normal'},Italic={'1' if italic else '0'},Underline={'1' if underline else '0'}"
+            position_style = f"x={left_margin}:y={top_margin}"
+    
+            # Nhúng phụ đề với các tùy chọn đã thêm
             ffmpeg_cmd = [
                 'ffmpeg',
                 '-i', input_video_path,
-                "-vf", f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style='Fontname={eng_font}'",  # Nhúng phụ đề SRT với font chữ
+                "-vf", f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style='{force_style},{position_style}'",
                 '-c:a', 'copy',
                 '-c:v', 'libx264',
                 '-preset', 'ultrafast',
-                '-crf', f'{crf}',  # Chất lượng video
+                '-crf', f'{crf}',
                 '-y',
                 output_video_path
             ]
-        
+    
             subprocess.run(ffmpeg_cmd, check=True)
 
             # Kiểm tra xem video đã nhúng phụ đề có tồn tại không
