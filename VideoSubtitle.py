@@ -272,10 +272,17 @@ class FormatSubtitles:
         self.logger.info(f'Subtitles generated: {vtt_subtitle_path}, {srt_subtitle_path}')
         return vtt_subtitle_path, srt_subtitle_path
 
+VIDEO_DIR = './resources/video_dir'
+
 class EmbedSubtitles:
     def __init__(self):
         self.logger = create_new_logger()
         self.drive_service = self.authenticate_google_drive()
+        
+        # Đảm bảo thư mục VIDEO_DIR tồn tại, nếu không thì tạo mới
+        if not os.path.exists(VIDEO_DIR):
+            os.makedirs(VIDEO_DIR)
+            self.logger.info(f"Tạo thư mục: {VIDEO_DIR}")
 
     def authenticate_google_drive(self):
         """Authenticate and create a Google Drive API service."""
