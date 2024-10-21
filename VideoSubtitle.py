@@ -320,10 +320,15 @@ class EmbedSubtitles:
             self.logger.info(f'Embedding subtitles into video: {input_video_path}')
             
             base_dir = '/content/ComfyUI'
-            curr_subtitles_dir = os.path.join(base_dir, 'resources', 'subtitles_dir', file_name)
-            subtitles_path = os.path.join(curr_subtitles_dir, f"{file_name}.vtt")
-            curr_tmp_output_dir = os.path.join('/tmp', 'gradio', 'output_dir', 'subtitles', file_name)
-            os.makedirs(curr_tmp_output_dir, exist_ok=True)
+            subtitles_dir = os.path.join(base_dir, 'resources', 'subtitles_dir')
+            output_dir = '/tmp/gradio/output'
+            os.makedirs(output_dir, exist_ok=True)
+            
+            subtitles_path = os.path.join(subtitles_dir, f"{file_name}.vtt")
+            if not os.path.exists(subtitles_path):
+                self.logger.error(f"Subtitles file not found: {subtitles_path}")
+                return ""
+
             video_ext = "mp4"
 
             if video_quality_key not in video_quality_map:
@@ -332,7 +337,7 @@ class EmbedSubtitles:
 
             if input_video_path.startswith('http://') or input_video_path.startswith('https://'):
                 response = requests.get(input_video_path)
-                input_video_path = os.path.join(curr_tmp_output_dir, "downloaded_video.mp4")
+                input_video_path = os.path.join(output_dir, "downloaded_video.mp4")
                 with open(input_video_path, 'wb') as f:
                     f.write(response.content)
                 self.logger.info(f'Video downloaded from URL: {input_video_path}')
@@ -342,7 +347,7 @@ class EmbedSubtitles:
                     self.logger.error(f'Input video path does not exist: {input_video_path}')
                     return ""
 
-            output_video_path = os.path.join(curr_tmp_output_dir, f"{file_name[:-16]}_{generate_current_time_suffix()}.{video_ext}")
+            output_video_path = os.path.join(output_dir, f"output_{int(time.time())}.{video_ext}")
         
             crf = video_quality_map[video_quality_key]
             fonts_dict = json_read(FONTS_JSON_PATH)
