@@ -304,6 +304,26 @@ class EmbedSubtitles:
     FUNCTION = "embed_subtitles"
     CATEGORY = "Subtitles Processing"
 
+    def install_font_if_needed(self, font_file_name, font_path):
+        """Cài đặt font nếu chưa được cài trên hệ thống."""
+        try:
+            installed_fonts = subprocess.run(
+                ['fc-list'], stdout=subprocess.PIPE, text=True).stdout
+            if font_file_name not in installed_fonts:
+                self.logger.info(f'Font {font_file_name} chưa được cài, đang tiến hành cài đặt...')
+                font_install_cmd = [
+                    'sudo', 'mkdir', '-p', '/usr/share/fonts/truetype/custom_fonts', '&&',
+                    'sudo', 'cp', font_path, '/usr/share/fonts/truetype/custom_fonts', '&&',
+                    'sudo', 'fc-cache', '-f', '-v'
+                ]
+                subprocess.run(' '.join(font_install_cmd), shell=True, check=True)
+                self.logger.info(f'Cài đặt font {font_file_name} thành công!')
+            else:
+                self.logger.info(f'Font {font_file_name} đã được cài sẵn.')
+        except Exception as e:
+            self.logger.error(f"Lỗi trong quá trình cài đặt font: {str(e)}")
+            raise
+
     def upload_to_google_drive(self, video_path):
         """Upload video to Google Drive and return the shared URL."""
         try:
@@ -366,7 +386,10 @@ class EmbedSubtitles:
             font_path = os.path.abspath(f'{FONTS_DIR}/{font_lang}/{font_file_name}')
 
             self.logger.info(f'Using font: {eng_font} from path: {font_path}')
-            
+
+            # Cài đặt font nếu cần thiết
+            self.install_font_if_needed(font_file_name, font_path)
+
             # Nhúng phụ đề SRT vào video sử dụng ffmpeg
             ffmpeg_cmd = [
                 'ffmpeg',
