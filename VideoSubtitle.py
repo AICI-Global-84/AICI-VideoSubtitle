@@ -319,16 +319,10 @@ class EmbedSubtitles:
             
             self.logger.info(f'Embedding subtitles into video: {input_video_path}')
             
-            base_dir = '/content/ComfyUI'
-            subtitles_dir = os.path.join(base_dir, 'resources', 'subtitles_dir')
-            output_dir = '/tmp/gradio/output'
-            os.makedirs(output_dir, exist_ok=True)
-            
-            subtitles_path = os.path.join(subtitles_dir, file_name)  # Không thêm .vtt ở đây
-            if not os.path.exists(f"{subtitles_path}.vtt"):
-                self.logger.error(f"Subtitles file not found: {subtitles_path}.vtt")
-                return ""
-
+            curr_subtitles_dir = os.path.abspath(f"{SUBTITLES_DIR}/{file_name}")
+            subtitles_path = os.path.abspath(f"{curr_subtitles_dir}/{file_name}.vtt")
+            curr_tmp_output_dir = os.path.abspath(f"{TMP_OUTPUT_DIR}/{file_name}")
+            os.makedirs(curr_tmp_output_dir, exist_ok=True)
             video_ext = "mp4"
 
             if video_quality_key not in video_quality_map:
@@ -337,7 +331,7 @@ class EmbedSubtitles:
 
             if input_video_path.startswith('http://') or input_video_path.startswith('https://'):
                 response = requests.get(input_video_path)
-                input_video_path = os.path.join(output_dir, "downloaded_video.mp4")
+                input_video_path = os.path.abspath(f"{curr_tmp_output_dir}/downloaded_video.mp4")
                 with open(input_video_path, 'wb') as f:
                     f.write(response.content)
                 self.logger.info(f'Video downloaded from URL: {input_video_path}')
@@ -347,21 +341,21 @@ class EmbedSubtitles:
                     self.logger.error(f'Input video path does not exist: {input_video_path}')
                     return ""
 
-            output_video_path = os.path.join(output_dir, f"output_{int(time.time())}.{video_ext}")
+            output_video_path = os.path.abspath(f"{curr_tmp_output_dir}/{file_name[:-16]}_{generate_current_time_suffix()}.{video_ext}")
         
             crf = video_quality_map[video_quality_key]
             fonts_dict = json_read(FONTS_JSON_PATH)
         
             font_lang = "english_fonts"
             font_file_name = fonts_dict[font_lang][eng_font]
-            font_path = os.path.join(base_dir, 'resources', 'fonts', font_lang, font_file_name)
+            font_path = os.path.abspath(f'{FONTS_DIR}/{font_lang}/{font_file_name}')
         
             self.logger.info(f'Using font: {eng_font} from path: {font_path}')
             
             ffmpeg_cmd = [
                 'ffmpeg',
                 '-i', input_video_path,
-                "-vf", f"subtitles={subtitles_path}:fontsdir={os.path.dirname(font_path)}:force_style='Fontname={eng_font}'",
+                "-vf", f"subtitles={subtitles_path}:fontsdir={font_path}:force_style='Fontname={eng_font}'",
                 '-c:a', 'copy',
                 '-c:v', 'libx264',
                 '-preset', 'ultrafast',
@@ -370,12 +364,7 @@ class EmbedSubtitles:
                 output_video_path
             ]
         
-            self.logger.info(f"Executing ffmpeg command: {' '.join(ffmpeg_cmd)}")
-            result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
-            
-            if result.returncode != 0:
-                self.logger.error(f"FFmpeg command failed. Error: {result.stderr}")
-                return ""
+            subprocess.run(ffmpeg_cmd, check=True)
         
             if os.path.exists(output_video_path):
                 video_url = self.upload_to_google_drive(output_video_path)
