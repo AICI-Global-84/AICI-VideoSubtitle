@@ -41,8 +41,7 @@ FONTS_DIR = config['FONTS_DIR']
 THUMBNAILS_DIR = config['THUMBNAILS_DIR']
 PARAMS_JSON_1_PATH = config['PARAMS_JSON_1_PATH']
 PARAMS_JSON_2_PATH = config['PARAMS_JSON_2_PATH']
-FONTS_JSON_PATH = config['FONTS_JSON_PATH']
-
+FONTS_JSON_PATH = os.path.join(base_dir, config['FONTS_JSON_PATH'])
 os.makedirs(AUDIO_DIR, exist_ok=True)
 os.makedirs(JSON_DIR, exist_ok=True)
 os.makedirs(LOGS_DIR, exist_ok=True)
