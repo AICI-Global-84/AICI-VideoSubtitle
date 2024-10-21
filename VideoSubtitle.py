@@ -322,7 +322,7 @@ class EmbedSubtitles:
             self.logger.info(f'Embedding subtitles into video: {input_video_path}')
             
             curr_subtitles_dir = os.path.abspath(f"{SUBTITLES_DIR}/{file_name}")
-            subtitles_path = os.path.abspath(f"{curr_subtitles_dir}/{file_name}.vtt")
+            subtitles_path = os.path.abspath(f"{curr_subtitles_dir}/{file_name}.vtt")  # Đảm bảo đường dẫn chính xác
             curr_tmp_output_dir = os.path.abspath(f"{TMP_OUTPUT_DIR}/{file_name}")
             os.makedirs(curr_tmp_output_dir, exist_ok=True)
             video_ext = "mp4"
