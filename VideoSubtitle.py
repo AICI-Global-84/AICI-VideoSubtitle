@@ -274,7 +274,7 @@ class FormatSubtitles:
 
 VIDEO_DIR = './resources/video_dir'
 
-class EmbedSubtitles2: 
+class EmbedSubtitles: 
     def __init__(self):
         self.logger = get_curr_logger()
         self.drive_service = self.authenticate_google_drive()
