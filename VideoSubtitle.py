@@ -287,7 +287,7 @@ class EmbedSubtitles:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input_video_path": ("STRING", {"tooltip": "Đường dẫn video đầu vào."}),
+                "input_video_path": ("STRING", {"tooltip": "Đường dẫn video đầu vào hoặc URL."}),
                 "file_name": ("STRING", {"tooltip": "Tên file phụ đề đã được tạo."}),
                 "video_quality_key": ("STRING", {"tooltip": "Khóa chất lượng video."}),
                 "eng_font": ("STRING", {"tooltip": "Tên font chữ tiếng Anh."}),
@@ -324,54 +324,58 @@ class EmbedSubtitles:
         curr_tmp_output_dir = f"{TMP_OUTPUT_DIR}/{file_name}"
         os.makedirs(curr_tmp_output_dir, exist_ok=True)
         video_ext = "mp4"
-        
-        # Kiểm tra video_quality_key hợp lệ
+
+        # Kiểm tra xem video_quality_key có hợp lệ không
         if video_quality_key not in video_quality_map:
             self.logger.error(f'Invalid video quality key: {video_quality_key}. Available keys: {list(video_quality_map.keys())}')
-            return ""  # Trả về chuỗi trống để tránh lỗi NoneType
-        
+            return None  # Hoặc trả về giá trị nào đó phù hợp
+
+        # Kiểm tra xem đầu vào là URL hay đường dẫn
+        if input_video_path.startswith('http://') or input_video_path.startswith('https://'):
+            # Tải video từ URL
+            response = requests.get(input_video_path)
+            input_video_path = f"{curr_tmp_output_dir}/downloaded_video.mp4"
+            with open(input_video_path, 'wb') as f:
+                f.write(response.content)
+            self.logger.info(f'Video downloaded from URL: {input_video_path}')
+        else:
+            # Đảm bảo rằng đường dẫn video tồn tại
+            if not os.path.exists(input_video_path):
+                self.logger.error(f'Input video path does not exist: {input_video_path}')
+                return None
+
         output_video_path = f"{curr_tmp_output_dir}/{file_name[:-16]}_{generate_current_time_suffix()}.{video_ext}"
-        
+    
         crf = video_quality_map[video_quality_key]
         fonts_dict = json_read(FONTS_JSON_PATH)
-        
+    
         font_lang = "english_fonts"
         font_file_name = fonts_dict[font_lang][eng_font]
         font_path = f'{FONTS_DIR}/{font_lang}/{font_file_name}'
-        
+    
         self.logger.info(f'Using font: {eng_font} from path: {font_path}')
         
         ffmpeg_cmd = [
             'ffmpeg',
-            '-i', input_video_path,
+            '-i', input_video_path,  # Input video file
             "-vf", f"subtitles={subtitles_path}:fontsdir={font_path}:force_style='Fontname={eng_font}'",
-            '-c:a', 'copy',
-            '-c:v', 'libx264',
-            '-preset', 'ultrafast',
-            '-crf', f'{crf}',
-            '-y',
-            output_video_path
+            '-c:a', 'copy',           # Copy audio codec
+            '-c:v', 'libx264',        # Re-encode video codec
+            '-preset', 'ultrafast',   # Preset for faster encoding
+            '-crf', f'{crf}',         # Constant Rate Factor for quality
+            '-y',                      # Overwrite output files without asking
+            output_video_path         # Output video file
         ]
-        
-        # Chạy lệnh ffmpeg
+    
+        # Run ffmpeg command
         subprocess.run(ffmpeg_cmd)
-        
-        # Kiểm tra file có được tạo không trước khi upload
-        if not os.path.exists(output_video_path):
-            self.logger.error(f"Output video file not found: {output_video_path}")
-            return ""  # Trả về chuỗi trống
-        
-        # Upload video lên Google Drive
+    
+        # Upload video to Google Drive
         video_url = self.upload_to_google_drive(output_video_path)
-        
-        # Nếu upload thất bại, trả về chuỗi trống
-        if not video_url:
-            return ""
-        
         end_time = time.time()
         elapsed_time = int(end_time - start_time)
         self.logger.info(f'Time taken to complete embedding: {elapsed_time} seconds')
-        
+    
         self.logger.info('Subtitles were successfully embedded into the input video')
         return video_url
 
