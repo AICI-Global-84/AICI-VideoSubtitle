@@ -274,7 +274,7 @@ class FormatSubtitles:
 
 class EmbedSubtitles:
     def __init__(self):
-        self.logger = get_curr_logger()
+        self.logger = create_new_logger()
         self.drive_service = self.authenticate_google_drive()
 
     def authenticate_google_drive(self):
@@ -289,17 +289,30 @@ class EmbedSubtitles:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input_video_path": ("STRING", {"tooltip": "Đường dẫn video đầu vào hoặc URL."}),
-                "file_name": ("STRING", {"tooltip": "Tên file phụ đề đã được tạo."}),
-                "video_quality_key": ("STRING", {"tooltip": "Khóa chất lượng video."}),
-                "eng_font": ("STRING", {"tooltip": "Tên font chữ tiếng Anh."}),
+                "video_url": ("STRING", {"tooltip": "URL của video để nhúng phụ đề."}),
+                "vtt_subtitle_path": ("STRING", {"tooltip": "Đường dẫn tới file VTT phụ đề."}),
+                "srt_subtitle_path": ("STRING", {"tooltip": "Đường dẫn tới file SRT phụ đề."}),
             },
         }
 
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("video_url",)
     FUNCTION = "embed_subtitles"
-    CATEGORY = "Subtitles Processing"
+    CATEGORY = "Video Processing"
+
+    def download_video(self, url):
+        """Tải video từ URL."""
+        response = requests.get(url, stream=True)
+        if response.status_code == 200:
+            video_file_name = os.path.basename(url).split("?")[0]  # Lấy tên file video từ URL, bỏ tham số query
+            video_file_path = os.path.join(VIDEO_DIR, video_file_name)
+            with open(video_file_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            return video_file_path
+        else:
+            self.logger.error(f"Failed to download video: {url} (status code: {response.status_code})")
+            return None
 
     def upload_to_google_drive(self, video_path):
         """Upload video to Google Drive and return the shared URL."""
@@ -315,84 +328,45 @@ class EmbedSubtitles:
             self.logger.error(f"An error occurred while uploading to Google Drive: {e}")
             return ""
 
-    def embed_subtitles(self, input_video_path, file_name, video_quality_key, eng_font):
-        try:
-            start_time = time.time()
-            
-            self.logger.info(f'Embedding subtitles into video: {input_video_path}')
-            
-            curr_subtitles_dir = os.path.abspath(f"{SUBTITLES_DIR}/{file_name}")
-            subtitles_path = os.path.abspath(f"{curr_subtitles_dir}/{file_name}.vtt")
-            curr_tmp_output_dir = os.path.abspath(f"{TMP_OUTPUT_DIR}/{file_name}")
-            os.makedirs(curr_tmp_output_dir, exist_ok=True)
-            video_ext = "mp4"
-    
-            if video_quality_key not in video_quality_map:
-                self.logger.error(f'Invalid video quality key: {video_quality_key}. Available keys: {list(video_quality_map.keys())}')
-                return ""
-    
-            if input_video_path.startswith('http://') or input_video_path.startswith('https://'):
-                response = requests.get(input_video_path)
-                input_video_path = os.path.abspath(f"{curr_tmp_output_dir}/downloaded_video.mp4")
-                with open(input_video_path, 'wb') as f:
-                    f.write(response.content)
-                self.logger.info(f'Video downloaded from URL: {input_video_path}')
-            else:
-                input_video_path = os.path.abspath(input_video_path)
-                if not os.path.exists(input_video_path):
-                    self.logger.error(f'Input video path does not exist: {input_video_path}')
-                    return ""
-    
-            output_video_path = os.path.abspath(f"{curr_tmp_output_dir}/{file_name[:-16]}_{generate_current_time_suffix()}.{video_ext}")
-    
-            crf = video_quality_map[video_quality_key]
-            fonts_dict = json_read(FONTS_JSON_PATH)
-    
-            font_lang = "english_fonts"
-            font_file_name = fonts_dict[font_lang][eng_font]
-            font_path = os.path.abspath(f'{FONTS_DIR}/{font_lang}/{font_file_name}')
-    
-            # In ra các đường dẫn để kiểm tra
-            self.logger.info(f'Subtitles path: {subtitles_path}')
-            self.logger.info(f'Input video path: {input_video_path}')
-            self.logger.info(f'Output video path: {output_video_path}')
-            self.logger.info(f'Font path: {font_path}')
-    
-            # Xác định lệnh ffmpeg
-            ffmpeg_cmd = [
-                'ffmpeg',
-                '-i', input_video_path,
-                "-vf", f"subtitles={subtitles_path}:fontsdir={font_path}:force_style='Fontname={eng_font}'",
-                '-c:a', 'copy',
-                '-c:v', 'libx264',
-                '-preset', 'ultrafast',
-                '-crf', f'{crf}',
-                '-y',
-                output_video_path
-            ]
-            
-            self.logger.info(f'Running ffmpeg command: {" ".join(ffmpeg_cmd)}')
-            subprocess.run(ffmpeg_cmd, check=True)
-            
-            if os.path.exists(output_video_path):
-                video_url = self.upload_to_google_drive(output_video_path)
-                if video_url:
-                    end_time = time.time()
-                    elapsed_time = int(end_time - start_time)
-                    self.logger.info(f'Time taken to complete embedding: {elapsed_time} seconds')
-                    self.logger.info('Subtitles were successfully embedded into the input video')
-                    return video_url
-                else:
-                    self.logger.error("Failed to upload video to Google Drive")
-                    return ""
-            else:
-                self.logger.error(f"Output video file not found: {output_video_path}")
-                return ""
-    
-        except Exception as e:
-            self.logger.error(f"An error occurred during subtitle embedding: {str(e)}")
+    def embed_subtitles(self, video_url, vtt_subtitle_path, srt_subtitle_path):
+        """Nhúng phụ đề vào video đã tải từ URL."""
+        # Tải video từ URL
+        video_file_path = self.download_video(video_url)
+        if not video_file_path:
             return ""
 
+        # Kiểm tra sự tồn tại của file phụ đề
+        if not os.path.exists(vtt_subtitle_path) or not os.path.exists(srt_subtitle_path):
+            self.logger.error("Subtitle file not found.")
+            return ""
+
+        # Tạo tên file đầu ra cho video đã nhúng phụ đề
+        output_video_name = generate_unique_file_name("output_video") + ".mp4"
+        output_video_path = os.path.join(TMP_OUTPUT_DIR, output_video_name)
+
+        try:
+            # Nhúng phụ đề vào video sử dụng ffmpeg
+            embed_command = [
+                "ffmpeg",
+                "-i", video_file_path,  # Đường dẫn video
+                "-vf", f"subtitles={srt_subtitle_path}",  # Nhúng phụ đề SRT
+                "-c:a", "copy",  # Giữ nguyên audio track
+                output_video_path  # Đường dẫn đầu ra cho video đã nhúng phụ đề
+            ]
+
+            subprocess.run(embed_command, check=True)
+            self.logger.info(f"Subtitles embedded successfully into video {output_video_path}")
+
+            # Upload file video đã nhúng phụ đề lên Google Drive
+            video_url = self.upload_to_google_drive(output_video_path)
+            if video_url:
+                return video_url
+            else:
+                self.logger.error("Failed to upload video to Google Drive")
+                return ""
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"Failed to embed subtitles: {e}")
+            return ""
 
 
 # A dictionary that contains all nodes you want to export with their names
