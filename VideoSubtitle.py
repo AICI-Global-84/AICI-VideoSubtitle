@@ -8,6 +8,7 @@ import whisper
 import re
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import HttpRequest
 from google.oauth2 import service_account
 from moviepy.editor import VideoFileClip
 from ._utils import AUDIO_DIR, create_new_logger, generate_unique_file_name, get_curr_logger, Timestamped_word, JSON_DIR, json_write, write_text_file, word_options_index_map, json_read, word_options_json_path, SUBTITLES_DIR, TMP_OUTPUT_DIR, generate_current_time_suffix, video_quality_map, FONTS_JSON_PATH, FONTS_DIR
@@ -278,7 +279,8 @@ class EmbedSubtitles:
     def __init__(self):
         self.logger = get_curr_logger()
         self.drive_service = self.authenticate_google_drive()
-
+     
+    HttpRequest.TIMEOUT = 300  # Đặt thời gian chờ là 300 giây
     def authenticate_google_drive(self):
         """Authenticate and create a Google Drive API service."""
         SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -334,7 +336,7 @@ class EmbedSubtitles:
         """Upload video to Google Drive và trả về URL chia sẻ."""
         try:
             file_metadata = {'name': os.path.basename(video_path), 'parents': ['1fZyeDT_eW6ozYXhqi_qLVy-Xnu5JD67a']}
-            media = MediaFileUpload(video_path, mimetype='video/mp4')
+            media = MediaFileUpload(video_path, mimetype='video/mp4', resumable=True)
             file = self.drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
 
             file_id = file.get('id')
