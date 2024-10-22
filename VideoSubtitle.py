@@ -423,14 +423,12 @@ class EmbedSubtitles:
                 'ffmpeg',
                 '-i', input_video_path,
                 "-vf", f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style='{style}'",  # Thêm style và margin vào
-                '-c:a', 'copy',
-                '-c:v', 'libx264',
-                '-preset', 'ultrafast',
-                '-crf', f'{crf}',  # Chất lượng video
+                '-c:v', 'copy',  # Không mã hóa lại video
+                '-c:a', 'copy',  # Không mã hóa lại âm thanh
                 '-y',
                 output_video_path
             ]
-        
+
             subprocess.run(ffmpeg_cmd, check=True)
 
             # Kiểm tra xem video đã nhúng phụ đề có tồn tại không
