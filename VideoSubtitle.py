@@ -424,9 +424,11 @@ class EmbedSubtitles:
             ffmpeg_cmd = [
                 'ffmpeg',
                 '-i', input_video_path,
-                "-vf", f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style='{style}'",  # Thêm style và margin vào
-                '-c:v', 'copy',  # Không mã hóa lại video
-                '-c:a', 'copy',  # Không mã hóa lại âm thanh
+                "-vf", f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style='{style}'",  # Nhúng phụ đề với style và margin
+                '-c:v', 'libx264',  # Sử dụng H.264 cho mã hóa video
+                '-preset', 'slow',  # Chọn preset chậm để tối ưu hóa kích thước tốt hơn
+                '-crf', '18',  # CRF cho chất lượng gần nhất với gốc, có thể điều chỉnh giữa 18-23
+                '-c:a', 'copy',  # Giữ nguyên âm thanh gốc
                 '-y',
                 output_video_path
             ]
