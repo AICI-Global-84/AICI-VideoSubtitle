@@ -296,32 +296,9 @@ class EmbedSubtitles:
                 "srt_subtitle_path": ("STRING", {"tooltip": "Đường dẫn tới file SRT phụ đề."}),
                 "video_quality_key": ("STRING", {"tooltip": "Khóa chất lượng video."}),
                 "eng_font": ("STRING", {"tooltip": "Tên font chữ tiếng Anh."}),
-                "fontsize": ("FLOAT", {
-                    "default": 24.0,  # Giá trị mặc định cho kích thước font
-                    "min": 1.0,      # Kích thước tối thiểu
-                    "max": 100.0,    # Kích thước tối đa
-                    "step": 1.0,     # Bước tăng
-                    "display": "number"  # Hiển thị dưới dạng số
-                }),
-                "bold": (["disable", "enable"], {"default": "disable", "tooltip": "Bật/Tắt chữ đậm."}),
-                "italic": (["disable", "enable"], {"default": "disable", "tooltip": "Bật/Tắt chữ nghiêng."}),
-                "underline": (["disable", "enable"], {"default": "disable", "tooltip": "Bật/Tắt gạch chân."}),
-                "left_margin": ("INT", {
-                    "default": 10, 
-                    "min": 0, 
-                    "max": 1000, 
-                    "step": 1
-                }),
-                "top_margin": ("INT", {
-                    "default": 10, 
-                    "min": 0, 
-                    "max": 1000, 
-                    "step": 1
-                }),
+                "font_size": ("INT", {"tooltip": "Kích thước font chữ (px)."}),  # Thêm tham số font_size
             },
         }
-
-
 
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("video_url",)
@@ -369,10 +346,10 @@ class EmbedSubtitles:
             return ""
 
 
-    def embed_subtitles(self, input_video_path, vtt_subtitle_path, srt_subtitle_path, video_quality_key, eng_font, fontsize, bold, italic, underline, left_margin, top_margin):
+    def embed_subtitles(self, input_video_path, vtt_subtitle_path, srt_subtitle_path, video_quality_key, eng_font, font_size):
         try:
             start_time = time.time()
-    
+
             self.logger.info(f'Embedding subtitles into video: {input_video_path}')
 
             # Tạo thư mục tạm cho output video
@@ -416,35 +393,24 @@ class EmbedSubtitles:
             font_file_name = fonts_dict[font_lang][eng_font]
             font_path = os.path.abspath(f'{FONTS_DIR}/{font_lang}/{font_file_name}')
 
-            self.logger.info(f'Using font: {eng_font} from path: {font_path}')
+            self.logger.info(f'Using font: {eng_font} from path: {font_path}, font size: {font_size}px')
 
             # Cài đặt font nếu cần thiết
             self.install_font_if_needed(font_file_name, font_path)
 
-            # Đặt lại các giá trị cho force_style
-            force_style = (
-                f"Fontname={eng_font},"
-                f"Fontsize={int(fontsize)},"
-                f"FontWeight={'Bold' if bold == 'enable' else 'Normal'},"
-                f"Italic={'1' if italic == 'enable' else '0'},"
-                f"Underline={'1' if underline == 'enable' else '0'}"
-            )
-            
-            # Đặt lại vị trí cho subtitle
-            position_style = f"x={left_margin}:y={top_margin}"
-            
-            # Xây dựng lại lệnh ffmpeg
+            # Nhúng phụ đề SRT vào video sử dụng ffmpeg, thêm force_style cho kích thước font chữ
             ffmpeg_cmd = [
                 'ffmpeg',
                 '-i', input_video_path,
-                '-vf', f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style={force_style}",
+                "-vf", f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style='Fontname={eng_font},Fontsize={font_size}'",  # Thêm Fontsize vào
                 '-c:a', 'copy',
                 '-c:v', 'libx264',
                 '-preset', 'ultrafast',
-                '-crf', '30',  
+                '-crf', f'{crf}',  # Chất lượng video
                 '-y',
                 output_video_path
             ]
+        
             subprocess.run(ffmpeg_cmd, check=True)
 
             # Kiểm tra xem video đã nhúng phụ đề có tồn tại không
@@ -466,7 +432,6 @@ class EmbedSubtitles:
         except Exception as e:
             self.logger.error(f"An error occurred during subtitle embedding: {str(e)}")
             return ("",)
-
 
 
 
