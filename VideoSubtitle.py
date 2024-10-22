@@ -297,9 +297,9 @@ class EmbedSubtitles:
                 "video_quality_key": ("STRING", {"tooltip": "Khóa chất lượng video."}),
                 "eng_font": ("STRING", {"tooltip": "Tên font chữ tiếng Anh."}),
                 "font_size": ("INT", {"tooltip": "Kích thước font chữ (px)."}),
-                "bold": ("BOOL", {"tooltip": "Bật/tắt kiểu chữ in đậm."}),  # Thêm tùy chọn kiểu Bold
-                "italic": ("BOOL", {"tooltip": "Bật/tắt kiểu chữ nghiêng."}),  # Thêm tùy chọn kiểu Italic
-                "underline": ("BOOL", {"tooltip": "Bật/tắt gạch chân."}),  # Thêm tùy chọn gạch chân
+                "bold": ("BOOLEAN", {"default": False, "tooltip": "Bật/tắt kiểu chữ in đậm."}),  # Thêm tùy chọn kiểu Bold
+                "italic": ("BOOLEAN", {"default": False, "tooltip": "Bật/tắt kiểu chữ nghiêng."}),  # Thêm tùy chọn kiểu Italic
+                "underline": ("BOOLEAN", {"default": False, "tooltip": "Bật/tắt gạch chân."}),  # Thêm tùy chọn gạch chân
             },
         }
 
@@ -401,23 +401,20 @@ class EmbedSubtitles:
             # Cài đặt font nếu cần thiết
             self.install_font_if_needed(font_file_name, font_path)
 
-            # Xây dựng chuỗi thuộc tính text style (in đậm, nghiêng, gạch chân)
-            text_style = []
+            # Thêm các kiểu chữ vào style
+            style = f"Fontname={eng_font},Fontsize={font_size}"
             if bold:
-                text_style.append("Bold=1")
+                style += ",Bold=1"
             if italic:
-                text_style.append("Italic=1")
+                style += ",Italic=1"
             if underline:
-                text_style.append("Underline=1")
+                style += ",Underline=1"
 
-            # Nối các thuộc tính text style lại với nhau
-            style_str = ','.join(text_style)
-
-            # Nhúng phụ đề SRT vào video sử dụng ffmpeg, thêm force_style cho kích thước font chữ và text style
+            # Nhúng phụ đề SRT vào video sử dụng ffmpeg, thêm các kiểu chữ
             ffmpeg_cmd = [
                 'ffmpeg',
                 '-i', input_video_path,
-                "-vf", f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style='Fontname={eng_font},Fontsize={font_size},{style_str}'",  # Thêm Fontsize và text style
+                "-vf", f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style='{style}'",  # Thêm style vào
                 '-c:a', 'copy',
                 '-c:v', 'libx264',
                 '-preset', 'ultrafast',
@@ -425,7 +422,7 @@ class EmbedSubtitles:
                 '-y',
                 output_video_path
             ]
-
+        
             subprocess.run(ffmpeg_cmd, check=True)
 
             # Kiểm tra xem video đã nhúng phụ đề có tồn tại không
