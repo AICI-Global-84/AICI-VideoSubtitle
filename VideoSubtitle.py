@@ -296,10 +296,12 @@ class EmbedSubtitles:
                 "srt_subtitle_path": ("STRING", {"tooltip": "Đường dẫn tới file SRT phụ đề."}),
                 "video_quality_key": ("STRING", {"tooltip": "Khóa chất lượng video."}),
                 "eng_font": ("STRING", {"tooltip": "Tên font chữ tiếng Anh."}),
-                "font_size": ("INT", {"tooltip": "Kích thước font chữ (px)."}),
-                "bold": ("BOOLEAN", {"default": False, "tooltip": "Bật/tắt kiểu chữ in đậm."}),  # Thêm tùy chọn kiểu Bold
-                "italic": ("BOOLEAN", {"default": False, "tooltip": "Bật/tắt kiểu chữ nghiêng."}),  # Thêm tùy chọn kiểu Italic
-                "underline": ("BOOLEAN", {"default": False, "tooltip": "Bật/tắt gạch chân."}),  # Thêm tùy chọn gạch chân
+                "font_size": ("INT", {"tooltip": "Kích thước font chữ (px)."}),  # Tham số font_size
+                "bold": ("BOOLEAN", {"default": False, "tooltip": "Bật/tắt kiểu chữ in đậm."}),  # Thêm tham số Bold
+                "italic": ("BOOLEAN", {"default": False, "tooltip": "Bật/tắt kiểu chữ nghiêng."}),  # Thêm tham số Italic
+                "underline": ("BOOLEAN", {"default": False, "tooltip": "Bật/tắt gạch chân."}),  # Thêm tham số Underline
+                "margin_v": ("INT", {"default": 10, "tooltip": "Khoảng cách từ lề trên/dưới (px)."}),  # Thêm tham số MarginV
+                "align_top": ("BOOLEAN", {"default": False, "tooltip": "Căn chỉnh phụ đề ở trên."}),  # Thêm tùy chọn căn lề trên
             },
         }
 
@@ -349,7 +351,7 @@ class EmbedSubtitles:
             return ""
 
 
-    def embed_subtitles(self, input_video_path, vtt_subtitle_path, srt_subtitle_path, video_quality_key, eng_font, font_size, bold, italic, underline):
+    def embed_subtitles(self, input_video_path, vtt_subtitle_path, srt_subtitle_path, video_quality_key, eng_font, font_size, bold, italic, underline, margin_v, align_top):
         try:
             start_time = time.time()
 
@@ -410,11 +412,17 @@ class EmbedSubtitles:
             if underline:
                 style += ",Underline=1"
 
-            # Nhúng phụ đề SRT vào video sử dụng ffmpeg, thêm các kiểu chữ
+            # Căn chỉnh phụ đề
+            if align_top:
+                style += f",MarginV={margin_v}"  # Căn chỉnh lề trên
+            else:
+                style += f",MarginV={margin_v}"  # Căn chỉnh lề dưới mặc định
+
+            # Nhúng phụ đề SRT vào video sử dụng ffmpeg, thêm các kiểu chữ và căn chỉnh
             ffmpeg_cmd = [
                 'ffmpeg',
                 '-i', input_video_path,
-                "-vf", f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style='{style}'",  # Thêm style vào
+                "-vf", f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style='{style}'",  # Thêm style và margin vào
                 '-c:a', 'copy',
                 '-c:v', 'libx264',
                 '-preset', 'ultrafast',
