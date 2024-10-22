@@ -379,7 +379,7 @@ class EmbedSubtitles:
                     return ("",)
 
             # Kiểm tra sự tồn tại của file phụ đề
-            if not os.path.exists(vtt_subtitle_path) hoặc not os.path.exists(srt_subtitle_path):
+            if not os.path.exists(vtt_subtitle_path) or not os.path.exists(srt_subtitle_path):
                 self.logger.error("Subtitle file not found.")
                 return ("",)
 
