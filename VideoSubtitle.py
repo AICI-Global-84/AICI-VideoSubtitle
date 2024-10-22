@@ -296,7 +296,10 @@ class EmbedSubtitles:
                 "srt_subtitle_path": ("STRING", {"tooltip": "Đường dẫn tới file SRT phụ đề."}),
                 "video_quality_key": ("STRING", {"tooltip": "Khóa chất lượng video."}),
                 "eng_font": ("STRING", {"tooltip": "Tên font chữ tiếng Anh."}),
-                "font_size": ("INT", {"tooltip": "Kích thước font chữ (px)."}),  # Thêm tham số font_size
+                "font_size": ("INT", {"tooltip": "Kích thước font chữ (px)."}),
+                "bold": ("BOOL", {"tooltip": "Bật/tắt kiểu chữ in đậm."}),  # Thêm tùy chọn kiểu Bold
+                "italic": ("BOOL", {"tooltip": "Bật/tắt kiểu chữ nghiêng."}),  # Thêm tùy chọn kiểu Italic
+                "underline": ("BOOL", {"tooltip": "Bật/tắt gạch chân."}),  # Thêm tùy chọn gạch chân
             },
         }
 
@@ -346,7 +349,7 @@ class EmbedSubtitles:
             return ""
 
 
-    def embed_subtitles(self, input_video_path, vtt_subtitle_path, srt_subtitle_path, video_quality_key, eng_font, font_size):
+    def embed_subtitles(self, input_video_path, vtt_subtitle_path, srt_subtitle_path, video_quality_key, eng_font, font_size, bold, italic, underline):
         try:
             start_time = time.time()
 
@@ -376,7 +379,7 @@ class EmbedSubtitles:
                     return ("",)
 
             # Kiểm tra sự tồn tại của file phụ đề
-            if not os.path.exists(vtt_subtitle_path) or not os.path.exists(srt_subtitle_path):
+            if not os.path.exists(vtt_subtitle_path) hoặc not os.path.exists(srt_subtitle_path):
                 self.logger.error("Subtitle file not found.")
                 return ("",)
 
@@ -398,11 +401,23 @@ class EmbedSubtitles:
             # Cài đặt font nếu cần thiết
             self.install_font_if_needed(font_file_name, font_path)
 
-            # Nhúng phụ đề SRT vào video sử dụng ffmpeg, thêm force_style cho kích thước font chữ
+            # Xây dựng chuỗi thuộc tính text style (in đậm, nghiêng, gạch chân)
+            text_style = []
+            if bold:
+                text_style.append("Bold=1")
+            if italic:
+                text_style.append("Italic=1")
+            if underline:
+                text_style.append("Underline=1")
+
+            # Nối các thuộc tính text style lại với nhau
+            style_str = ','.join(text_style)
+
+            # Nhúng phụ đề SRT vào video sử dụng ffmpeg, thêm force_style cho kích thước font chữ và text style
             ffmpeg_cmd = [
                 'ffmpeg',
                 '-i', input_video_path,
-                "-vf", f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style='Fontname={eng_font},Fontsize={font_size}'",  # Thêm Fontsize vào
+                "-vf", f"subtitles={vtt_subtitle_path}:fontsdir={font_path}:force_style='Fontname={eng_font},Fontsize={font_size},{style_str}'",  # Thêm Fontsize và text style
                 '-c:a', 'copy',
                 '-c:v', 'libx264',
                 '-preset', 'ultrafast',
@@ -410,7 +425,7 @@ class EmbedSubtitles:
                 '-y',
                 output_video_path
             ]
-        
+
             subprocess.run(ffmpeg_cmd, check=True)
 
             # Kiểm tra xem video đã nhúng phụ đề có tồn tại không
