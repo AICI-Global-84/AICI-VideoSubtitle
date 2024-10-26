@@ -280,7 +280,7 @@ class EmbedSubtitles:
         self.logger = get_curr_logger()
         self.drive_service = self.authenticate_google_drive()
      
-    HttpRequest.TIMEOUT = 300  # Đặt thời gian chờ là 300 giây
+    HttpRequest.TIMEOUT = 900  # Đặt thời gian chờ là 900 giây
     def authenticate_google_drive(self):
         """Authenticate and create a Google Drive API service."""
         SCOPES = ['https://www.googleapis.com/auth/drive']
